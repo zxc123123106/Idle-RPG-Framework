@@ -1,0 +1,50 @@
+package com.idlerpg.service.equipment;
+
+import com.idlerpg.domain.item.EquipmentSlot;
+import com.idlerpg.domain.item.ItemDefinition;
+import com.idlerpg.domain.player.Player;
+
+import java.util.EnumMap;
+import java.util.Map;
+
+public final class EquipmentService {
+    public boolean equip(Player player, ItemDefinition item) {
+        return equip(player, item, Map.of(item.id(), item));
+    }
+
+    public boolean equip(Player player, ItemDefinition item, Map<String, ItemDefinition> itemLookup) {
+        if (!item.isEquipment()) {
+            return false;
+        }
+        if (player.getInventory().getQuantity(item.id()) <= 0) {
+            return false;
+        }
+        player.getEquipment().put(item.slot(), item.id());
+        recalculateBonuses(player, itemLookup);
+        return true;
+    }
+
+    public void unequip(Player player, EquipmentSlot slot, Map<String, ItemDefinition> itemLookup) {
+        player.getEquipment().remove(slot);
+        recalculateBonuses(player, itemLookup);
+    }
+
+    public void recalculateBonuses(Player player, Map<String, ItemDefinition> itemLookup) {
+        int attack = 0;
+        int defense = 0;
+        int hp = 0;
+        for (String itemId : player.getEquipment().values()) {
+            ItemDefinition item = itemLookup.get(itemId);
+            if (item != null) {
+                attack += item.attackBonus();
+                defense += item.defenseBonus();
+                hp += item.hpBonus();
+            }
+        }
+        player.applyEquipmentBonuses(attack, defense, hp);
+    }
+
+    public Map<EquipmentSlot, String> copyEquipment(Player player) {
+        return new EnumMap<>(player.getEquipment());
+    }
+}

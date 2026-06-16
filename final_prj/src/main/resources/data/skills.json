@@ -1,0 +1,38 @@
+[
+  {
+    "id": "mine_copper",
+    "name": "開採銅礦",
+    "actionType": "MINING",
+    "durationTicks": 3,
+    "rewardItemId": "copper_ore",
+    "rewardQuantity": 2,
+    "expReward": 12
+  },
+  {
+    "id": "mine_iron",
+    "name": "開採鐵礦",
+    "actionType": "MINING",
+    "durationTicks": 5,
+    "rewardItemId": "iron_ore",
+    "rewardQuantity": 1,
+    "expReward": 20
+  },
+  {
+    "id": "fish_river",
+    "name": "河畔垂釣",
+    "actionType": "FISHING",
+    "durationTicks": 4,
+    "rewardItemId": "river_fish",
+    "rewardQuantity": 1,
+    "expReward": 15
+  },
+  {
+    "id": "gather_shadow_herb",
+    "name": "採集影葉草",
+    "actionType": "FISHING",
+    "durationTicks": 6,
+    "rewardItemId": "shadow_herb",
+    "rewardQuantity": 1,
+    "expReward": 24
+  }
+]

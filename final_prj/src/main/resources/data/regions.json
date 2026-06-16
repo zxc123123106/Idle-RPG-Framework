@@ -1,0 +1,37 @@
+[
+  {
+    "id": "sunlit_meadow",
+    "name": "晨光草原",
+    "description": "新手冒險者開始旅程的安全區域，礦脈與河流都容易抵達。",
+    "icon": "☀",
+    "requiredLevel": 1,
+    "skillIds": ["mine_copper", "fish_river"],
+    "enemyIds": ["training_slime"],
+    "shopItemIds": ["bronze_pickaxe", "guard_vest"],
+    "questIds": ["first_ore", "slime_training"]
+  },
+  {
+    "id": "iron_ridge",
+    "name": "鐵脊山道",
+    "description": "礦石品質更高的山道，也開始出現持械敵人。",
+    "icon": "▲",
+    "requiredLevel": 2,
+    "requiredQuestId": "first_ore",
+    "skillIds": ["mine_iron"],
+    "enemyIds": ["forest_bandit"],
+    "shopItemIds": ["iron_sword"],
+    "questIds": ["iron_supply", "clear_bandits"]
+  },
+  {
+    "id": "shadow_forest",
+    "name": "幽暗森林",
+    "description": "光線稀薄的森林，稀有藥草與兇猛野獸共存。",
+    "icon": "☾",
+    "requiredLevel": 3,
+    "requiredQuestId": "clear_bandits",
+    "skillIds": ["gather_shadow_herb"],
+    "enemyIds": ["shade_wolf"],
+    "shopItemIds": ["iron_sword", "guard_vest"],
+    "questIds": ["shadow_herbs", "wolf_hunt"]
+  }
+]

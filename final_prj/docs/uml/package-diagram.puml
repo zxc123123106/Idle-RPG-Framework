@@ -1,0 +1,28 @@
+@startuml
+skinparam packageStyle rectangle
+
+package "view\nFXML + CSS" as view
+package controller
+package command
+package "service\ninventory/combat/gathering\nregion/quest/shop/save/offline" as service
+package domain
+package "core.event" as event
+package "core.engine" as engine
+package "core.registry" as registry
+package "core.loader" as loader
+database "JSON data" as data
+database "Local save\n~/.idle-rpg-framework/save.json" as save
+
+view --> controller
+controller --> command
+controller --> service
+controller --> event
+command --> service
+service --> domain
+service --> event
+service --> registry
+service --> save
+engine --> service
+loader --> data
+controller --> loader
+@enduml

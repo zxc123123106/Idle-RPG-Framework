@@ -1,0 +1,66 @@
+[
+  {
+    "id": "first_ore",
+    "title": "第一批礦石",
+    "description": "取得 6 個銅礦石，證明你能穩定採集資源。",
+    "type": "GATHER_ITEM",
+    "targetId": "copper_ore",
+    "requiredCount": 6,
+    "rewardExp": 30,
+    "rewardGold": 20,
+    "rewardItemId": "bronze_pickaxe",
+    "rewardQuantity": 1,
+    "unlockRegionId": "iron_ridge"
+  },
+  {
+    "id": "slime_training",
+    "title": "草原戰鬥訓練",
+    "description": "擊敗 3 隻訓練史萊姆，熟悉自動戰鬥節奏。",
+    "type": "DEFEAT_ENEMY",
+    "targetId": "training_slime",
+    "requiredCount": 3,
+    "rewardExp": 35,
+    "rewardGold": 25
+  },
+  {
+    "id": "iron_supply",
+    "title": "鐵礦補給",
+    "description": "取得 4 個鐵礦石，供應城鎮工匠。",
+    "type": "GATHER_ITEM",
+    "targetId": "iron_ore",
+    "requiredCount": 4,
+    "rewardExp": 60,
+    "rewardGold": 45
+  },
+  {
+    "id": "clear_bandits",
+    "title": "清理山道",
+    "description": "擊敗 2 名森林盜賊，打通前往森林的道路。",
+    "type": "DEFEAT_ENEMY",
+    "targetId": "forest_bandit",
+    "requiredCount": 2,
+    "rewardExp": 90,
+    "rewardGold": 60,
+    "unlockRegionId": "shadow_forest"
+  },
+  {
+    "id": "shadow_herbs",
+    "title": "影葉草樣本",
+    "description": "收集 3 株影葉草，交給藥師研究。",
+    "type": "GATHER_ITEM",
+    "targetId": "shadow_herb",
+    "requiredCount": 3,
+    "rewardExp": 100,
+    "rewardGold": 75
+  },
+  {
+    "id": "wolf_hunt",
+    "title": "影狼狩獵",
+    "description": "擊敗 2 隻影狼，讓森林道路再次安全。",
+    "type": "DEFEAT_ENEMY",
+    "targetId": "shade_wolf",
+    "requiredCount": 2,
+    "rewardExp": 140,
+    "rewardGold": 100
+  }
+]

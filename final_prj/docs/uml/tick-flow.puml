@@ -1,0 +1,27 @@
+@startuml
+actor User
+participant "GameEngine" as Engine
+participant "GatheringService" as Gathering
+participant "CombatService" as Combat
+participant "QuestService" as Quest
+participant "SaveService" as Save
+participant "EventBus" as EventBus
+participant "JavaFX Controller" as Controller
+
+User -> Controller: Start action / combat
+Controller -> Gathering: start(skill)
+Controller -> Combat: startCombat(enemy)
+
+loop every second
+  Engine -> Gathering: tick(context)
+  Gathering -> EventBus: publish(SkillProgressEvent)
+  Gathering -> EventBus: publish(ItemAddedEvent)
+  Gathering -> Quest: recordGathered()
+  Engine -> Combat: tick(context)
+  Combat -> EventBus: publish(CombatEvent)
+  Combat -> Quest: recordEnemyDefeated()
+  Engine -> EventBus: publish(GameTickEvent)
+  EventBus -> Controller: update UI
+  Controller -> Save: autosave periodically
+end
+@enduml

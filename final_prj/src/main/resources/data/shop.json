@@ -1,0 +1,20 @@
+[
+  {
+    "id": "buy_bronze_pickaxe",
+    "itemId": "bronze_pickaxe",
+    "price": 60,
+    "requiredRegionId": "sunlit_meadow"
+  },
+  {
+    "id": "buy_guard_vest",
+    "itemId": "guard_vest",
+    "price": 90,
+    "requiredRegionId": "sunlit_meadow"
+  },
+  {
+    "id": "buy_iron_sword",
+    "itemId": "iron_sword",
+    "price": 130,
+    "requiredRegionId": "iron_ridge"
+  }
+]

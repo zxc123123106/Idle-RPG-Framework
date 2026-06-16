@@ -1,0 +1,95 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+interface Identifiable {
+  +id(): String
+}
+
+interface GameEvent {
+  +occurredAt(): Instant
+  +message(): String
+}
+
+class EventBus {
+  +subscribe(type, handler)
+  +publish(event)
+}
+
+class Registry<T> {
+  +register(value)
+  +get(id)
+  +getAll()
+}
+
+class GameEngine {
+  +register(tickable)
+  +start()
+  +tickOnce()
+  +stop()
+}
+
+interface Tickable {
+  +tick(context)
+}
+
+class Player
+class Inventory
+class ItemDefinition
+class SkillDefinition
+class EnemyDefinition
+class RegionDefinition
+class QuestDefinition
+class ShopEntry
+class SaveGame
+class InventoryService
+class GatheringService
+class CombatService
+class ProgressionService
+class RegionService
+class QuestService
+class ShopService
+class EquipmentService
+class SaveService
+class OfflineProgressService
+interface ActionStrategy
+class MiningStrategy
+class FishingStrategy
+class CombatStrategy
+interface GameCommand
+
+Identifiable <|.. ItemDefinition
+Identifiable <|.. SkillDefinition
+Identifiable <|.. EnemyDefinition
+Identifiable <|.. RegionDefinition
+Identifiable <|.. QuestDefinition
+Identifiable <|.. ShopEntry
+GameEvent <|.. ItemAddedEvent
+GameEvent <|.. SkillProgressEvent
+GameEvent <|.. CombatEvent
+GameEvent <|.. LevelUpEvent
+GameEvent <|.. QuestEvent
+GameEvent <|.. RegionUnlockedEvent
+GameEvent <|.. ShopPurchaseEvent
+Tickable <|.. GatheringService
+Tickable <|.. CombatService
+ActionStrategy <|.. MiningStrategy
+ActionStrategy <|.. FishingStrategy
+ActionStrategy <|.. CombatStrategy
+
+Player *-- Inventory
+InventoryService ..> Player
+GatheringService ..> ActionStrategy
+CombatService ..> EnemyDefinition
+ProgressionService ..> Player
+RegionService ..> RegionDefinition
+QuestService ..> QuestDefinition
+ShopService ..> ShopEntry
+EquipmentService ..> ItemDefinition
+SaveService ..> SaveGame
+OfflineProgressService ..> SkillDefinition
+GameEngine --> Tickable
+GameEngine --> EventBus
+Registry --> Identifiable
+GameCommand ..> GatheringService
+GameCommand ..> CombatService
+@enduml

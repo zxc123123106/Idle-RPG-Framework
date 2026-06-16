@@ -1,0 +1,26 @@
+[
+  {
+    "id": "training_slime",
+    "name": "訓練史萊姆",
+    "maxHp": 35,
+    "attack": 3,
+    "expReward": 25,
+    "goldReward": 6
+  },
+  {
+    "id": "forest_bandit",
+    "name": "森林盜賊",
+    "maxHp": 70,
+    "attack": 8,
+    "expReward": 55,
+    "goldReward": 18
+  },
+  {
+    "id": "shade_wolf",
+    "name": "影狼",
+    "maxHp": 110,
+    "attack": 12,
+    "expReward": 90,
+    "goldReward": 30
+  }
+]

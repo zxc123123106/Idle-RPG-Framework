@@ -1,0 +1,77 @@
+[
+  {
+    "id": "copper_ore",
+    "name": "銅礦石",
+    "type": "RESOURCE",
+    "value": 5,
+    "description": "新手礦脈中常見的礦石，可用於基礎交易。",
+    "icon": "◆",
+    "rarity": "COMMON"
+  },
+  {
+    "id": "iron_ore",
+    "name": "鐵礦石",
+    "type": "RESOURCE",
+    "value": 12,
+    "description": "較堅硬的礦石，是打造武器的基本材料。",
+    "icon": "⬙",
+    "rarity": "UNCOMMON"
+  },
+  {
+    "id": "river_fish",
+    "name": "河魚",
+    "type": "CONSUMABLE",
+    "value": 8,
+    "description": "河畔釣起的新鮮魚，可販售換取金幣。",
+    "icon": "≈",
+    "rarity": "COMMON"
+  },
+  {
+    "id": "shadow_herb",
+    "name": "影葉草",
+    "type": "RESOURCE",
+    "value": 18,
+    "description": "幽暗森林中的藥草，夜晚會散出微光。",
+    "icon": "✦",
+    "rarity": "UNCOMMON"
+  },
+  {
+    "id": "bronze_pickaxe",
+    "name": "青銅礦鎬",
+    "type": "EQUIPMENT",
+    "value": 80,
+    "description": "提高冒險者攻擊力的基礎工具。",
+    "icon": "⛏",
+    "rarity": "UNCOMMON",
+    "slot": "TOOL",
+    "attackBonus": 3,
+    "defenseBonus": 0,
+    "hpBonus": 0
+  },
+  {
+    "id": "iron_sword",
+    "name": "鐵劍",
+    "type": "EQUIPMENT",
+    "value": 140,
+    "description": "穩定可靠的鐵製短劍。",
+    "icon": "⚔",
+    "rarity": "RARE",
+    "slot": "WEAPON",
+    "attackBonus": 8,
+    "defenseBonus": 0,
+    "hpBonus": 0
+  },
+  {
+    "id": "guard_vest",
+    "name": "守衛皮甲",
+    "type": "EQUIPMENT",
+    "value": 120,
+    "description": "城鎮守衛常用的輕甲。",
+    "icon": "▣",
+    "rarity": "UNCOMMON",
+    "slot": "ARMOR",
+    "attackBonus": 0,
+    "defenseBonus": 4,
+    "hpBonus": 20
+  }
+]
