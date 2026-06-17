@@ -18,6 +18,15 @@
     "expReward": 20
   },
   {
+    "id": "mine_moon_ore",
+    "name": "開採月影礦",
+    "actionType": "MINING",
+    "durationTicks": 7,
+    "rewardItemId": "moon_ore",
+    "rewardQuantity": 1,
+    "expReward": 34
+  },
+  {
     "id": "fish_river",
     "name": "河畔垂釣",
     "actionType": "FISHING",
@@ -25,6 +34,24 @@
     "rewardItemId": "river_fish",
     "rewardQuantity": 1,
     "expReward": 15
+  },
+  {
+    "id": "fish_ridge",
+    "name": "山溪垂釣",
+    "actionType": "FISHING",
+    "durationTicks": 5,
+    "rewardItemId": "ridge_fish",
+    "rewardQuantity": 1,
+    "expReward": 22
+  },
+  {
+    "id": "fish_shadow",
+    "name": "幽潭垂釣",
+    "actionType": "FISHING",
+    "durationTicks": 7,
+    "rewardItemId": "shadow_fish",
+    "rewardQuantity": 1,
+    "expReward": 32
   },
   {
     "id": "cook_fish",
@@ -35,6 +62,30 @@
     "rewardQuantity": 1,
     "expReward": 18,
     "consumeItemId": "river_fish",
+    "consumeQuantity": 1,
+    "regionRestricted": false
+  },
+  {
+    "id": "cook_ridge_fish",
+    "name": "烹調山溪魚",
+    "actionType": "COOKING",
+    "durationTicks": 6,
+    "rewardItemId": "cooked_ridge_fish",
+    "rewardQuantity": 1,
+    "expReward": 26,
+    "consumeItemId": "ridge_fish",
+    "consumeQuantity": 1,
+    "regionRestricted": false
+  },
+  {
+    "id": "cook_shadow_fish",
+    "name": "烹調幽影魚",
+    "actionType": "COOKING",
+    "durationTicks": 7,
+    "rewardItemId": "cooked_shadow_fish",
+    "rewardQuantity": 1,
+    "expReward": 38,
+    "consumeItemId": "shadow_fish",
     "consumeQuantity": 1,
     "regionRestricted": false
   },

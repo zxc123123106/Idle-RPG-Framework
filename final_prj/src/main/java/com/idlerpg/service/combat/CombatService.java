@@ -98,14 +98,15 @@ public final class CombatService implements Tickable {
         ));
 
         if (player.isDefeated()) {
+            int lostExperience = player.reduceCurrentExperienceByPercent(0.5);
+            player.restoreHpToPercent(0.5);
             eventBus.publish(new CombatEvent(
                     CombatEvent.Type.DEFEAT,
                     activeEnemy,
-                    0,
-                    "",
+                    lostExperience,
+                    "Lost " + lostExperience + " exp, HP restored to 50%",
                     Instant.now()
             ));
-            player.healToFull();
             activeEnemy = null;
         }
     }

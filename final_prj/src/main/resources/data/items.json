@@ -18,6 +18,15 @@
     "rarity": "UNCOMMON"
   },
   {
+    "id": "moon_ore",
+    "name": "月影礦",
+    "type": "RESOURCE",
+    "value": 26,
+    "description": "幽暗森林深處的稀有礦石，帶有微弱冷光，售價高於一般礦物。",
+    "icon": "◇",
+    "rarity": "RARE"
+  },
+  {
     "id": "river_fish",
     "name": "河魚",
     "type": "CONSUMABLE",
@@ -28,6 +37,26 @@
     "healAmount": 12
   },
   {
+    "id": "ridge_fish",
+    "name": "山溪魚",
+    "type": "CONSUMABLE",
+    "value": 14,
+    "description": "鐵脊山道溪流中的魚，肉質更扎實，食用後回復較多 HP。",
+    "icon": "≈",
+    "rarity": "UNCOMMON",
+    "healAmount": 20
+  },
+  {
+    "id": "shadow_fish",
+    "name": "幽影魚",
+    "type": "CONSUMABLE",
+    "value": 24,
+    "description": "幽暗森林水域中的稀有魚，帶有溫和魔力，能回復大量 HP。",
+    "icon": "≈",
+    "rarity": "RARE",
+    "healAmount": 34
+  },
+  {
     "id": "cooked_fish",
     "name": "熟魚",
     "type": "CONSUMABLE",
@@ -36,6 +65,26 @@
     "icon": "♨",
     "rarity": "COMMON",
     "healAmount": 28
+  },
+  {
+    "id": "cooked_ridge_fish",
+    "name": "烤山溪魚",
+    "type": "CONSUMABLE",
+    "value": 24,
+    "description": "烤熟的山溪魚，比生食更適合長時間冒險。",
+    "icon": "♨",
+    "rarity": "UNCOMMON",
+    "healAmount": 38
+  },
+  {
+    "id": "cooked_shadow_fish",
+    "name": "烤幽影魚",
+    "type": "CONSUMABLE",
+    "value": 40,
+    "description": "細火料理過的幽影魚，能在危急時回復大量 HP。",
+    "icon": "♨",
+    "rarity": "RARE",
+    "healAmount": 56
   },
   {
     "id": "shadow_herb",

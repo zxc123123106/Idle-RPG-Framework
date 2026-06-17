@@ -1,5 +1,6 @@
 package com.idlerpg.core.loader;
 
+import com.idlerpg.domain.skill.ActionType;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -28,9 +29,19 @@ class JsonDataLoaderTest {
         var skillIds = data.skills().stream()
                 .map(skill -> skill.id())
                 .collect(Collectors.toSet());
+        var skillsById = data.skills().stream()
+                .collect(Collectors.toMap(skill -> skill.id(), skill -> skill));
         assertTrue(data.regions().stream()
                 .flatMap(region -> region.skillIds().stream())
                 .allMatch(skillIds::contains));
+        assertTrue(data.regions().stream()
+                .allMatch(region -> region.skillIds().stream()
+                        .map(skillsById::get)
+                        .anyMatch(skill -> skill.actionType() == ActionType.MINING)));
+        assertTrue(data.regions().stream()
+                .allMatch(region -> region.skillIds().stream()
+                        .map(skillsById::get)
+                        .anyMatch(skill -> skill.actionType() == ActionType.FISHING)));
         assertTrue(data.skills().stream()
                 .anyMatch(skill -> !skill.isRegionRestricted()));
     }

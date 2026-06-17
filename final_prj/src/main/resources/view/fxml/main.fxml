@@ -7,7 +7,6 @@
 <?import javafx.scene.control.ListView?>
 <?import javafx.scene.control.ProgressBar?>
 <?import javafx.scene.control.ScrollPane?>
-<?import javafx.scene.control.Spinner?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Priority?>
@@ -34,12 +33,6 @@
                             <Label fx:id="expLabel" styleClass="profile-sub" text="0 / 100"/>
                             <Label styleClass="profile-sub" text="HP"/>
                             <Label fx:id="hpLabel" styleClass="profile-sub" text="100 / 100"/>
-                        </HBox>
-                        <HBox alignment="CENTER_LEFT" spacing="10.0">
-                            <Label styleClass="profile-sub" text="攻擊"/>
-                            <Label fx:id="attackLabel" styleClass="profile-sub" text="1"/>
-                            <Label styleClass="profile-sub" text="防禦"/>
-                            <Label fx:id="defenseLabel" styleClass="profile-sub" text="0"/>
                         </HBox>
                     </VBox>
                 </left>
@@ -96,10 +89,10 @@
                             <Label fx:id="eventStatLabel" styleClass="detail-text" wrapText="true" text=""/>
                             <Label fx:id="eventBonusLabel" styleClass="detail-text" wrapText="true" text=""/>
                             <VBox fx:id="eventSkillControls" alignment="CENTER" spacing="12.0" maxWidth="620.0">
-                                <ComboBox fx:id="skillComboBox" maxWidth="Infinity"/>
+                                <HBox fx:id="skillOptionBox" alignment="CENTER" spacing="10.0"/>
                                 <Label fx:id="activeSkillLabel" styleClass="large-status" text="休息中"/>
                                 <ProgressBar fx:id="skillProgressBar" maxWidth="Infinity" prefHeight="24.0" progress="0.0" styleClass="time-progress-bar"/>
-                                <Label fx:id="skillTimeLabel" styleClass="time-label" text="時間條：0 / 0 秒"/>
+                                <Label fx:id="skillTimeLabel" styleClass="time-label" text="時間條：目前無事件"/>
                                 <Label fx:id="skillRewardLabel" styleClass="reward-badge" wrapText="true" text="獎勵預覽"/>
                                 <Button fx:id="skillToggleButton" onAction="#onToggleAction" styleClass="primary-toggle-button" text="▶"/>
                             </VBox>
@@ -112,11 +105,11 @@
                         <VBox alignment="CENTER" spacing="18.0" styleClass="stage-page combat-page">
                             <Label styleClass="stage-title" text="戰鬥"/>
                             <Label styleClass="combat-hero" text="⚔"/>
-                            <ComboBox fx:id="enemyComboBox" maxWidth="520.0"/>
+                            <HBox fx:id="enemyOptionBox" alignment="CENTER" spacing="10.0" maxWidth="620.0"/>
                             <Label fx:id="combatStatusLabel" styleClass="large-status" text="目前沒有戰鬥"/>
                             <ProgressBar fx:id="enemyHpBar" maxWidth="620.0" prefHeight="24.0" progress="0.0" styleClass="combat-progress-bar"/>
                             <Label fx:id="combatProgressLabel" styleClass="time-label" text="生命條：0 / 0"/>
-                            <Label fx:id="combatHintLabel" maxWidth="720.0" styleClass="combat-hint" wrapText="true" text="選擇敵人後會顯示戰鬥計算。"/>
+                            <Label fx:id="combatHintLabel" maxWidth="620.0" styleClass="combat-hint" wrapText="true" text="選擇敵人後會顯示戰鬥計算。"/>
                             <Button fx:id="combatToggleButton" onAction="#onToggleCombat" styleClass="primary-toggle-button" text="⚔"/>
                         </VBox>
                     </content>
@@ -144,7 +137,6 @@
                                 <Label styleClass="section-title" text="當前目標"/>
                                 <Label fx:id="objectiveLabel" styleClass="pill-label" text="進行中"/>
                             </HBox>
-                            <Label fx:id="recentRewardLabel" styleClass="reward-banner" wrapText="true" text="最近獎勵會以提示顯示"/>
                             <ListView fx:id="questListView" maxHeight="300.0" maxWidth="760.0"/>
                             <Button maxWidth="520.0" onAction="#onClaimQuest" text="領取選中任務獎勵"/>
                         </VBox>
@@ -157,7 +149,7 @@
                             <Label styleClass="stage-title" text="地圖"/>
                             <Label styleClass="scene-pixel" text="☾"/>
                             <Label fx:id="regionDescriptionLabel" styleClass="scene-description" wrapText="true" text="區域描述"/>
-                            <VBox fx:id="mapRegionBox" maxWidth="760.0" spacing="10.0"/>
+                            <VBox fx:id="mapRegionBox" maxWidth="620.0" spacing="10.0"/>
                         </VBox>
                     </content>
                 </ScrollPane>
@@ -168,7 +160,13 @@
                             <Label styleClass="stage-title" text="商店"/>
                             <HBox alignment="CENTER" spacing="10.0">
                                 <ComboBox fx:id="shopModeComboBox" maxWidth="160.0"/>
-                                <Spinner fx:id="shopQuantitySpinner" editable="true" maxWidth="120.0"/>
+                                <HBox fx:id="shopQuantityControl" alignment="CENTER" spacing="6.0" styleClass="quantity-stepper">
+                                    <Button fx:id="shopQuantityMinButton" onAction="#onShopQuantityMin" styleClass="quantity-button" text="&lt;&lt;"/>
+                                    <Button fx:id="shopQuantityDecreaseButton" onAction="#onShopQuantityDecrease" styleClass="quantity-button" text="&lt;"/>
+                                    <Label fx:id="shopQuantityLabel" alignment="CENTER" styleClass="quantity-value" text="1"/>
+                                    <Button fx:id="shopQuantityIncreaseButton" onAction="#onShopQuantityIncrease" styleClass="quantity-button" text="&gt;"/>
+                                    <Button fx:id="shopQuantityMaxButton" onAction="#onShopQuantityMax" styleClass="quantity-button" text="&gt;&gt;"/>
+                                </HBox>
                             </HBox>
                             <Label fx:id="shopDescriptionLabel" styleClass="scene-description" text="目前區域可購買商品"/>
                             <ListView fx:id="shopListView" maxHeight="330.0" maxWidth="720.0"/>
@@ -189,5 +187,5 @@
         </bottom>
     </BorderPane>
 
-    <Label fx:id="toastLabel" StackPane.alignment="BOTTOM_CENTER" styleClass="toast" text=""/>
+    <Label fx:id="toastLabel" StackPane.alignment="TOP_CENTER" styleClass="toast" text=""/>
 </StackPane>

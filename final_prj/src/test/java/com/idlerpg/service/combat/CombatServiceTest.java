@@ -61,4 +61,33 @@ class CombatServiceTest {
         var activeEnemy = testContext.combatService().getActiveEnemy().orElseThrow();
         assertEquals(40, activeEnemy.getCurrentHp());
     }
+
+    @Test
+    void defeatRemovesHalfCurrentExperienceAndRestoresHalfHp() {
+        TestGameContextFactory.TestContext testContext = TestGameContextFactory.create();
+        EnemyDefinition enemy = new EnemyDefinition(
+                "danger_dummy",
+                "Danger Dummy",
+                999,
+                200,
+                0,
+                0
+        );
+        AtomicInteger defeatLostExperience = new AtomicInteger(-1);
+        testContext.context().getPlayer().addExperience(80);
+        testContext.eventBus().subscribe(CombatEvent.class, event -> {
+            if (event.type() == CombatEvent.Type.DEFEAT) {
+                defeatLostExperience.set(event.amount());
+            }
+        });
+
+        testContext.combatService().startCombat(enemy);
+        testContext.combatService().tick(testContext.context());
+
+        assertTrue(testContext.combatService().getActiveEnemy().isEmpty());
+        assertEquals(40, defeatLostExperience.get());
+        assertEquals(40, testContext.context().getPlayer().getExperience());
+        assertEquals(50, testContext.context().getPlayer().getCurrentHp());
+        assertEquals(1, testContext.context().getPlayer().getLevel());
+    }
 }

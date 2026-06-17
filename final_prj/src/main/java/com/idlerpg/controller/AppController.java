@@ -48,10 +48,16 @@ import com.idlerpg.service.quest.QuestService;
 import com.idlerpg.service.region.RegionService;
 import com.idlerpg.service.save.SaveService;
 import com.idlerpg.service.shop.ShopService;
+import javafx.animation.Animation;
+import javafx.animation.Interpolator;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
 import javafx.animation.PauseTransition;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.geometry.Pos;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -61,8 +67,8 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.control.Spinner;
-import javafx.scene.control.SpinnerValueFactory;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 import javafx.util.StringConverter;
@@ -83,8 +89,6 @@ public final class AppController {
     @FXML private Label expLabel;
     @FXML private Label goldLabel;
     @FXML private Label hpLabel;
-    @FXML private Label attackLabel;
-    @FXML private Label defenseLabel;
     @FXML private Label regionTitleLabel;
     @FXML private Label saveStatusLabel;
     @FXML private Label toastLabel;
@@ -115,14 +119,14 @@ public final class AppController {
     @FXML private Label eventStatLabel;
     @FXML private Label eventBonusLabel;
     @FXML private VBox eventSkillControls;
-    @FXML private ComboBox<SkillDefinition> skillComboBox;
+    @FXML private HBox skillOptionBox;
     @FXML private Label activeSkillLabel;
     @FXML private ProgressBar skillProgressBar;
     @FXML private Label skillTimeLabel;
     @FXML private Label skillRewardLabel;
     @FXML private Button skillToggleButton;
 
-    @FXML private ComboBox<EnemyDefinition> enemyComboBox;
+    @FXML private HBox enemyOptionBox;
     @FXML private Label combatStatusLabel;
     @FXML private ProgressBar enemyHpBar;
     @FXML private Label combatProgressLabel;
@@ -131,12 +135,16 @@ public final class AppController {
 
     @FXML private ListView<EquipmentSlot> equipmentListView;
     @FXML private Label objectiveLabel;
-    @FXML private Label recentRewardLabel;
     @FXML private ListView<QuestDefinition> questListView;
     @FXML private Label regionDescriptionLabel;
     @FXML private VBox mapRegionBox;
     @FXML private ComboBox<ShopMode> shopModeComboBox;
-    @FXML private Spinner<Integer> shopQuantitySpinner;
+    @FXML private HBox shopQuantityControl;
+    @FXML private Label shopQuantityLabel;
+    @FXML private Button shopQuantityMinButton;
+    @FXML private Button shopQuantityDecreaseButton;
+    @FXML private Button shopQuantityIncreaseButton;
+    @FXML private Button shopQuantityMaxButton;
     @FXML private Label shopDescriptionLabel;
     @FXML private ListView<ShopRow> shopListView;
     @FXML private Button shopActionButton;
@@ -164,6 +172,13 @@ public final class AppController {
     private EquipmentService equipmentService;
     private SaveService saveService;
     private PauseTransition toastTimer;
+    private Timeline skillProgressAnimation;
+    private String animatedSkillId = "";
+    private int animatedProgressTicks = -1;
+    private int animatedRequiredTicks = -1;
+    private int shopSellQuantity = 1;
+    private String selectedSkillId = "";
+    private String selectedEnemyId = "";
     private MainViewMode currentViewMode = MainViewMode.EVENT;
     private SideEntry selectedSideEntry;
     private InventoryStack selectedInventoryStack;
@@ -226,7 +241,7 @@ public final class AppController {
     }
 
     private void startAction() {
-        SkillDefinition selectedSkill = skillComboBox.getSelectionModel().getSelectedItem();
+        SkillDefinition selectedSkill = selectedSkill();
         if (selectedSkill == null) {
             notifyPlayer("目前區域沒有可用的採集");
             return;
@@ -257,7 +272,7 @@ public final class AppController {
     }
 
     private void startCombat() {
-        EnemyDefinition selectedEnemy = enemyComboBox.getSelectionModel().getSelectedItem();
+        EnemyDefinition selectedEnemy = selectedEnemy();
         if (selectedEnemy == null) {
             notifyPlayer("目前區域沒有可挑戰的敵人");
             return;
@@ -323,8 +338,7 @@ public final class AppController {
         if (stack == null) {
             return;
         }
-        int quantity = shopQuantitySpinner.getValue() == null ? 1 : shopQuantitySpinner.getValue();
-        quantity = Math.max(1, Math.min(quantity, stack.getQuantity()));
+        int quantity = Math.max(1, Math.min(shopSellQuantity, stack.getQuantity()));
         int goldEarned = stack.getItem().value() * quantity;
         if (inventoryService.removeItem(player, stack.getItem().id(), quantity)) {
             player.addGold(goldEarned);
@@ -332,6 +346,28 @@ public final class AppController {
             refreshAll();
             saveGame("已自動存檔");
         }
+    }
+
+    @FXML
+    private void onShopQuantityMin() {
+        setShopSellQuantity(1);
+    }
+
+    @FXML
+    private void onShopQuantityDecrease() {
+        setShopSellQuantity(shopSellQuantity - 1);
+    }
+
+    @FXML
+    private void onShopQuantityIncrease() {
+        setShopSellQuantity(shopSellQuantity + 1);
+    }
+
+    @FXML
+    private void onShopQuantityMax() {
+        ShopRow row = shopListView.getSelectionModel().getSelectedItem();
+        InventoryStack stack = row == null ? null : row.inventoryStack();
+        setShopSellQuantity(stack == null ? 1 : stack.getQuantity());
     }
 
     @FXML
@@ -376,6 +412,7 @@ public final class AppController {
 
     public void shutdown() {
         saveGame("關閉前已存檔");
+        stopSkillProgressAnimation();
         if (engine != null) {
             engine.stop();
         }
@@ -521,12 +558,33 @@ public final class AppController {
                 super.updateItem(row, empty);
                 if (empty || row == null) {
                     setText(null);
+                    setGraphic(null);
                     return;
                 }
-                setText(row.displayText());
+                setText(null);
+                setGraphic(createShopRowGraphic(row));
             }
         });
-        shopListView.getSelectionModel().selectedItemProperty().addListener((observable, oldRow, newRow) -> refreshShopControls());
+        shopListView.getSelectionModel().selectedItemProperty().addListener((observable, oldRow, newRow) -> {
+            shopSellQuantity = 1;
+            refreshShopControls();
+        });
+    }
+
+    private Node createShopRowGraphic(ShopRow row) {
+        Label title = new Label(row.titleText());
+        title.getStyleClass().add("shop-row-title");
+        Label meta = new Label(row.metaText());
+        meta.getStyleClass().add("shop-row-meta");
+        VBox textBox = new VBox(3, title, meta);
+        Label right = new Label(row.rightText());
+        right.getStyleClass().add("shop-row-right");
+        BorderPane pane = new BorderPane();
+        pane.getStyleClass().add("shop-row");
+        pane.setLeft(textBox);
+        pane.setRight(right);
+        BorderPane.setAlignment(right, Pos.CENTER_RIGHT);
+        return pane;
     }
 
     private void configureComboBoxes() {
@@ -562,31 +620,11 @@ public final class AppController {
             }
         });
         shopModeComboBox.getSelectionModel().select(ShopMode.BUY);
-        shopModeComboBox.getSelectionModel().selectedItemProperty().addListener((observable, oldMode, newMode) -> refreshShop());
-        shopQuantitySpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 1, 1));
-
-        skillComboBox.setConverter(new StringConverter<>() {
-            @Override
-            public String toString(SkillDefinition skill) {
-                return skill == null ? "" : skill.name();
-            }
-
-            @Override
-            public SkillDefinition fromString(String string) {
-                return null;
-            }
+        shopModeComboBox.getSelectionModel().selectedItemProperty().addListener((observable, oldMode, newMode) -> {
+            shopSellQuantity = 1;
+            refreshShop();
         });
-        enemyComboBox.setConverter(new StringConverter<>() {
-            @Override
-            public String toString(EnemyDefinition enemy) {
-                return enemy == null ? "" : enemy.name();
-            }
 
-            @Override
-            public EnemyDefinition fromString(String string) {
-                return null;
-            }
-        });
     }
 
     private void subscribeToEvents(EventBus eventBus) {
@@ -653,8 +691,6 @@ public final class AppController {
         expLabel.setText(player.getExperience() + " / " + player.getExperienceToNextLevel());
         goldLabel.setText(player.getGold() + " G");
         hpLabel.setText(player.getCurrentHp() + " / " + player.getMaxHp());
-        attackLabel.setText(Integer.toString(player.getAttackPower()));
-        defenseLabel.setText(Integer.toString(player.getDefense()));
         expBar.setProgress(progressRatio(player.getExperience(), player.getExperienceToNextLevel()));
         playerHpBar.setProgress(progressRatio(player.getCurrentHp(), player.getMaxHp()));
     }
@@ -816,14 +852,10 @@ public final class AppController {
     }
 
     private void refreshSkillOptions() {
-        if (context == null || regionService == null || skillComboBox == null) {
+        if (context == null || regionService == null || skillOptionBox == null) {
             return;
         }
-        String selectedSkillId = skillComboBox.getSelectionModel().getSelectedItem() == null
-                ? ""
-                : skillComboBox.getSelectionModel().getSelectedItem().id();
         List<SkillDefinition> skills = currentSkillOptions();
-        skillComboBox.setItems(FXCollections.observableArrayList(skills));
         Optional<SkillDefinition> activeSkill = gatheringService == null
                 ? Optional.empty()
                 : gatheringService.getActiveSkill();
@@ -834,10 +866,44 @@ public final class AppController {
                         .findFirst()
                         .orElse(skills.isEmpty() ? null : skills.getFirst()));
         if (target != null) {
-            skillComboBox.getSelectionModel().select(target);
+            selectedSkillId = target.id();
         } else {
-            skillComboBox.getSelectionModel().clearSelection();
+            selectedSkillId = "";
         }
+        renderSkillOptions(skills);
+    }
+
+    private void renderSkillOptions(List<SkillDefinition> skills) {
+        skillOptionBox.getChildren().clear();
+        for (SkillDefinition skill : skills) {
+            Button card = new Button(skillOptionText(skill));
+            card.setWrapText(true);
+            card.setMaxWidth(Double.MAX_VALUE);
+            card.getStyleClass().add("skill-option-card");
+            if (skill.id().equals(selectedSkillId)) {
+                card.getStyleClass().add("skill-option-selected");
+            }
+            card.setOnAction(event -> {
+                selectedSkillId = skill.id();
+                refreshSkillOptions();
+                refreshSkillPanel();
+            });
+            HBox.setHgrow(card, javafx.scene.layout.Priority.ALWAYS);
+            skillOptionBox.getChildren().add(card);
+        }
+    }
+
+    private String skillOptionText(SkillDefinition skill) {
+        ItemDefinition reward = itemLookup.get(skill.rewardItemId());
+        String rewardName = reward == null ? skill.rewardItemId() : reward.name();
+        return skill.name() + "\n" + rewardName + " x" + skill.rewardQuantity();
+    }
+
+    private SkillDefinition selectedSkill() {
+        return currentSkillOptions().stream()
+                .filter(skill -> skill.id().equals(selectedSkillId))
+                .findFirst()
+                .orElse(null);
     }
 
     private List<SkillDefinition> currentSkillOptions() {
@@ -858,27 +924,18 @@ public final class AppController {
     }
 
     private void refreshCombatState() {
-        RegionDefinition region = regionService.getCurrentRegion(player);
-        String selectedEnemyId = enemyComboBox.getSelectionModel().getSelectedItem() == null
-                ? ""
-                : enemyComboBox.getSelectionModel().getSelectedItem().id();
-        List<EnemyDefinition> enemies = region.enemyIds().stream()
-                .map(id -> context.getEnemyRegistry().getRequired(id))
-                .toList();
-        enemyComboBox.setItems(FXCollections.observableArrayList(enemies));
-        enemies.stream()
-                .filter(enemy -> enemy.id().equals(selectedEnemyId))
-                .findFirst()
-                .ifPresentOrElse(
-                        enemy -> enemyComboBox.getSelectionModel().select(enemy),
-                        () -> {
-                            if (!enemies.isEmpty()) {
-                                enemyComboBox.getSelectionModel().selectFirst();
-                            }
-                        }
-                );
-
+        List<EnemyDefinition> enemies = currentRegionEnemies();
         Optional<EnemyInstance> activeEnemy = combatService.getActiveEnemy();
+        EnemyDefinition target = activeEnemy
+                .map(EnemyInstance::getDefinition)
+                .filter(enemies::contains)
+                .orElseGet(() -> enemies.stream()
+                        .filter(enemy -> enemy.id().equals(selectedEnemyId))
+                        .findFirst()
+                        .orElse(enemies.isEmpty() ? null : enemies.getFirst()));
+        selectedEnemyId = target == null ? "" : target.id();
+        renderEnemyOptions(enemies);
+
         if (activeEnemy.isPresent()) {
             EnemyInstance enemy = activeEnemy.get();
             combatStatusLabel.setText(enemy.getDefinition().name() + " HP "
@@ -891,7 +948,7 @@ public final class AppController {
         } else {
             combatStatusLabel.setText("目前沒有戰鬥");
             enemyHpBar.setProgress(0);
-            EnemyDefinition selectedEnemy = enemyComboBox.getSelectionModel().getSelectedItem();
+            EnemyDefinition selectedEnemy = selectedEnemy();
             combatProgressLabel.setText(selectedEnemy == null
                     ? "生命條：目前無敵人"
                     : "生命條：0 / " + selectedEnemy.maxHp());
@@ -901,6 +958,43 @@ public final class AppController {
             combatToggleButton.setText("⚔");
             combatToggleButton.setDisable(selectedEnemy == null);
         }
+    }
+
+    private void renderEnemyOptions(List<EnemyDefinition> enemies) {
+        enemyOptionBox.getChildren().clear();
+        for (EnemyDefinition enemy : enemies) {
+            Button card = new Button(enemyOptionText(enemy));
+            card.setWrapText(true);
+            card.setMaxWidth(Double.MAX_VALUE);
+            card.getStyleClass().add("skill-option-card");
+            if (enemy.id().equals(selectedEnemyId)) {
+                card.getStyleClass().add("skill-option-selected");
+            }
+            card.setOnAction(event -> {
+                selectedEnemyId = enemy.id();
+                refreshCombatState();
+            });
+            HBox.setHgrow(card, javafx.scene.layout.Priority.ALWAYS);
+            enemyOptionBox.getChildren().add(card);
+        }
+    }
+
+    private String enemyOptionText(EnemyDefinition enemy) {
+        return enemy.name() + "\nHP " + enemy.maxHp() + " / 攻 " + enemy.attack() + " / 防 " + enemy.defense();
+    }
+
+    private List<EnemyDefinition> currentRegionEnemies() {
+        RegionDefinition region = regionService.getCurrentRegion(player);
+        return region.enemyIds().stream()
+                .map(id -> context.getEnemyRegistry().getRequired(id))
+                .toList();
+    }
+
+    private EnemyDefinition selectedEnemy() {
+        return currentRegionEnemies().stream()
+                .filter(enemy -> enemy.id().equals(selectedEnemyId))
+                .findFirst()
+                .orElse(null);
     }
 
     private String combatHintText(EnemyDefinition enemy) {
@@ -986,20 +1080,39 @@ public final class AppController {
         ShopMode mode = currentShopMode();
         ShopRow row = shopListView.getSelectionModel().getSelectedItem();
         boolean sellMode = mode == ShopMode.SELL;
-        setVisibleManaged(shopQuantitySpinner, sellMode);
+        setVisibleManaged(shopQuantityControl, sellMode);
         shopActionButton.setText(sellMode ? "出售選中物品" : "購買選中商品");
-        shopDescriptionLabel.setText(sellMode
-                ? "選擇背包物品與數量，依物品價值換成 Gold"
-                : "目前區域可購買商品");
         if (sellMode && row != null && row.inventoryStack() != null) {
             int maxQuantity = Math.max(1, row.inventoryStack().getQuantity());
-            int currentQuantity = shopQuantitySpinner.getValue() == null ? 1 : shopQuantitySpinner.getValue();
-            int selectedQuantity = Math.max(1, Math.min(currentQuantity, maxQuantity));
-            shopQuantitySpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, maxQuantity, selectedQuantity));
+            shopSellQuantity = Math.max(1, Math.min(shopSellQuantity, maxQuantity));
+            shopQuantityLabel.setText(Integer.toString(shopSellQuantity));
+            int totalValue = row.inventoryStack().getItem().value() * shopSellQuantity;
+            shopDescriptionLabel.setText("選擇背包物品與數量，本次出售 " + shopSellQuantity + " 個 / " + totalValue + " G");
+            updateShopQuantityButtons(maxQuantity);
         } else {
-            shopQuantitySpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 1, 1));
+            shopSellQuantity = 1;
+            shopQuantityLabel.setText("1");
+            shopDescriptionLabel.setText(sellMode ? "目前沒有可出售物品" : "目前區域可購買商品");
+            updateShopQuantityButtons(1);
         }
         shopActionButton.setDisable(row == null);
+    }
+
+    private void setShopSellQuantity(int quantity) {
+        ShopRow row = shopListView.getSelectionModel().getSelectedItem();
+        InventoryStack stack = row == null ? null : row.inventoryStack();
+        int maxQuantity = stack == null ? 1 : Math.max(1, stack.getQuantity());
+        shopSellQuantity = Math.max(1, Math.min(quantity, maxQuantity));
+        refreshShopControls();
+    }
+
+    private void updateShopQuantityButtons(int maxQuantity) {
+        boolean atMinimum = shopSellQuantity <= 1;
+        boolean atMaximum = shopSellQuantity >= maxQuantity;
+        shopQuantityMinButton.setDisable(atMinimum);
+        shopQuantityDecreaseButton.setDisable(atMinimum);
+        shopQuantityIncreaseButton.setDisable(atMaximum);
+        shopQuantityMaxButton.setDisable(atMaximum);
     }
 
     private void refreshQuests() {
@@ -1068,7 +1181,7 @@ public final class AppController {
     }
 
     private void refreshSkillPanel() {
-        SkillDefinition selectedSkill = skillComboBox.getSelectionModel().getSelectedItem();
+        SkillDefinition selectedSkill = selectedSkill();
         String title = actionTypeLabel(selectedSideEntry.actionType());
         eventTitleLabel.setText(title);
         eventSubtitleLabel.setText(selectedSkill == null ? "目前區域沒有此類事件" : selectedSkill.name());
@@ -1089,17 +1202,17 @@ public final class AppController {
         if (activeSkill.isPresent()) {
             int requiredTicks = gatheringService.getRequiredTicks(context);
             int progressTicks = Math.min(gatheringService.getProgressTicks(), requiredTicks);
-            skillProgressBar.setProgress(gatheringService.getProgressRatio(context));
-            skillTimeLabel.setText("時間條：" + progressTicks + " / " + requiredTicks
-                    + " 秒 / 循環中（" + skillSpeedText(activeSkill.get()) + "）");
+            syncSkillProgressAnimation(activeSkill.get(), progressTicks, requiredTicks);
+            skillTimeLabel.setText("時間條：每輪約 " + requiredTicks + " 秒（進行中）");
             skillToggleButton.setText("Ⅱ");
             skillToggleButton.setDisable(false);
         } else {
+            stopSkillProgressAnimation();
             skillProgressBar.setProgress(0);
             int requiredTicks = selectedSkill == null ? 0 : requiredTicks(selectedSkill);
             skillTimeLabel.setText(selectedSkill == null
                     ? "時間條：目前無事件"
-                    : "時間條：約 " + requiredTicks + " 秒 / 循環（" + skillSpeedText(selectedSkill) + "）");
+                    : "時間條：每輪約 " + requiredTicks + " 秒");
             skillToggleButton.setText("▶");
             skillToggleButton.setDisable(selectedSkill == null || !hasRequiredItems(selectedSkill));
         }
@@ -1123,22 +1236,6 @@ public final class AppController {
 
     private int requiredTicks(SkillDefinition skill) {
         return SkillSpeedCalculator.requiredTicks(player, skill, itemLookup::get);
-    }
-
-    private String skillSpeedText(SkillDefinition skill) {
-        double levelSpeed = SkillSpeedCalculator.levelSpeedPercent(player, skill);
-        int toolSpeed = SkillSpeedCalculator.toolSpeedPercent(player, skill, itemLookup::get);
-        double totalSpeed = SkillSpeedCalculator.totalSpeedPercent(player, skill, itemLookup::get);
-        return "基礎 " + skill.durationTicks()
-                + " 秒 → " + requiredTicks(skill)
-                + " 秒，加速 " + formatPercent(totalSpeed)
-                + "%（Lv " + formatPercent(levelSpeed) + "% + 工具 " + toolSpeed + "%）";
-    }
-
-    private String formatPercent(double value) {
-        return Math.rint(value) == value
-                ? Integer.toString((int) value)
-                : String.format(java.util.Locale.ROOT, "%.1f", value);
     }
 
     private boolean hasRequiredItems(SkillDefinition skill) {
@@ -1247,6 +1344,48 @@ public final class AppController {
         }
     }
 
+    private void syncSkillProgressAnimation(SkillDefinition skill, int progressTicks, int requiredTicks) {
+        if (requiredTicks <= 0) {
+            stopSkillProgressAnimation();
+            skillProgressBar.setProgress(0);
+            return;
+        }
+        if (skill.id().equals(animatedSkillId)
+                && progressTicks == animatedProgressTicks
+                && requiredTicks == animatedRequiredTicks
+                && skillProgressAnimation != null
+                && skillProgressAnimation.getStatus() == Animation.Status.RUNNING) {
+            return;
+        }
+        boolean newCycle = skill.id().equals(animatedSkillId)
+                && animatedProgressTicks >= 0
+                && progressTicks < animatedProgressTicks;
+        double startRatio = newCycle ? 0.0 : Math.max(0.0, skillProgressBar.getProgress());
+        stopSkillProgressAnimation();
+        animatedSkillId = skill.id();
+        animatedProgressTicks = progressTicks;
+        animatedRequiredTicks = requiredTicks;
+
+        int targetTicks = Math.min(requiredTicks, progressTicks + 1);
+        double targetRatio = progressRatio(targetTicks, requiredTicks);
+        skillProgressBar.setProgress(startRatio);
+        skillProgressAnimation = new Timeline(
+                new KeyFrame(Duration.ZERO, new KeyValue(skillProgressBar.progressProperty(), startRatio, Interpolator.LINEAR)),
+                new KeyFrame(Duration.seconds(1), new KeyValue(skillProgressBar.progressProperty(), targetRatio, Interpolator.LINEAR))
+        );
+        skillProgressAnimation.playFromStart();
+    }
+
+    private void stopSkillProgressAnimation() {
+        if (skillProgressAnimation != null) {
+            skillProgressAnimation.stop();
+            skillProgressAnimation = null;
+        }
+        animatedSkillId = "";
+        animatedProgressTicks = -1;
+        animatedRequiredTicks = -1;
+    }
+
     private String sideEntryText(SideEntry entry) {
         if (player == null) {
             return entry.icon() + " " + entry.title();
@@ -1282,11 +1421,13 @@ public final class AppController {
     }
 
     private void addReward(String message) {
-        recentRewardLabel.setText(message);
         notifyPlayer(message);
     }
 
     private void notifyPlayer(String message) {
+        if (currentViewMode == MainViewMode.JOURNAL) {
+            return;
+        }
         toastLabel.setVisible(true);
         toastLabel.setManaged(true);
         toastLabel.setText(message);
@@ -1432,7 +1573,9 @@ public final class AppController {
             String id,
             ShopEntry shopEntry,
             InventoryStack inventoryStack,
-            String displayText
+            String titleText,
+            String metaText,
+            String rightText
     ) {
         private static ShopRow forBuy(ShopEntry entry, ItemDefinition item) {
             String itemName = item == null ? entry.itemId() : item.name();
@@ -1441,19 +1584,21 @@ public final class AppController {
                     "buy:" + entry.id(),
                     entry,
                     null,
-                    itemName + "  " + entry.price() + " G\n" + itemMeta
+                    itemName,
+                    itemMeta,
+                    entry.price() + " G"
             );
         }
 
         private static ShopRow forSell(InventoryStack stack) {
             ItemDefinition item = stack.getItem();
-            int totalValue = item.value() * stack.getQuantity();
             return new ShopRow(
                     "sell:" + item.id(),
                     null,
                     stack,
-                    item.name() + " x" + stack.getQuantity() + "  單價 " + item.value() + " G"
-                            + "\n" + rarityDisplay(item) + " / " + itemTypeDisplay(item) + " / 全部出售 " + totalValue + " G"
+                    item.name(),
+                    rarityDisplay(item) + " / " + itemTypeDisplay(item) + " / 單價 " + item.value() + " G",
+                    "x" + stack.getQuantity()
             );
         }
 

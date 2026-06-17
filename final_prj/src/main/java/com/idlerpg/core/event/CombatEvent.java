@@ -28,7 +28,7 @@ public record CombatEvent(
             case HIT -> "Hit " + enemyName + " for " + amount + " damage.";
             case PLAYER_HIT -> enemyName + " hit player for " + amount + " damage.";
             case VICTORY -> "Victory over " + enemyName + ". " + detail;
-            case DEFEAT -> "Player was defeated by " + enemyName + ".";
+            case DEFEAT -> "Player was defeated by " + enemyName + ". " + detail;
             case STOPPED -> "Combat stopped.";
         };
     }

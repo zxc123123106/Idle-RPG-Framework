@@ -163,6 +163,15 @@ public final class Player {
         experience += amount;
     }
 
+    public int reduceCurrentExperienceByPercent(double percent) {
+        if (percent < 0.0 || percent > 1.0) {
+            throw new IllegalArgumentException("Experience reduction percent must be between 0 and 1.");
+        }
+        int lostExperience = (int) Math.floor(experience * percent);
+        experience -= lostExperience;
+        return lostExperience;
+    }
+
     public void levelUp() {
         experience -= getExperienceToNextLevel();
         level++;
@@ -197,6 +206,13 @@ public final class Player {
 
     public void healToFull() {
         currentHp = getMaxHp();
+    }
+
+    public void restoreHpToPercent(double percent) {
+        if (percent < 0.0 || percent > 1.0) {
+            throw new IllegalArgumentException("HP percent must be between 0 and 1.");
+        }
+        currentHp = Math.max(1, (int) Math.ceil(getMaxHp() * percent));
     }
 
     public void heal(int amount) {
