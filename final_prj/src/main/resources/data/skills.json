@@ -27,6 +27,17 @@
     "expReward": 15
   },
   {
+    "id": "cook_fish",
+    "name": "烹調河魚",
+    "actionType": "COOKING",
+    "durationTicks": 5,
+    "rewardItemId": "cooked_fish",
+    "rewardQuantity": 1,
+    "expReward": 18,
+    "consumeItemId": "river_fish",
+    "consumeQuantity": 1
+  },
+  {
     "id": "gather_shadow_herb",
     "name": "採集影葉草",
     "actionType": "FISHING",

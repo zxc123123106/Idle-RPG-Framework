@@ -86,6 +86,11 @@ public final class GatheringService implements Tickable {
             return;
         }
 
+        if (!consumeRequiredItems(context, activeSkill)) {
+            stop(context.getPlayer());
+            return;
+        }
+
         ActionResult result = activeStrategy.execute(context);
         ItemDefinition reward = context.getItemRegistry().getRequired(result.rewardItemId());
         context.getInventoryService().addItem(context.getPlayer(), reward, result.rewardQuantity());
@@ -99,5 +104,12 @@ public final class GatheringService implements Tickable {
             context.getRegionService().unlockEligibleRegions(context.getPlayer());
         }
         progressTicks = 0;
+    }
+
+    private boolean consumeRequiredItems(GameContext context, SkillDefinition skill) {
+        if (skill.consumeItemId().isBlank() || skill.consumeQuantity() <= 0) {
+            return true;
+        }
+        return context.getPlayer().getInventory().removeItem(skill.consumeItemId(), skill.consumeQuantity());
     }
 }

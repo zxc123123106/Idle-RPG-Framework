@@ -16,8 +16,22 @@ public final class EquipmentService {
         if (!item.isEquipment()) {
             return false;
         }
+        String equippedItemId = player.getEquipment().get(item.slot());
+        if (item.id().equals(equippedItemId)) {
+            recalculateBonuses(player, itemLookup);
+            return true;
+        }
         if (player.getInventory().getQuantity(item.id()) <= 0) {
             return false;
+        }
+        if (!player.getInventory().removeItem(item.id(), 1)) {
+            return false;
+        }
+        if (equippedItemId != null) {
+            ItemDefinition equippedItem = itemLookup.get(equippedItemId);
+            if (equippedItem != null) {
+                player.getInventory().addItem(equippedItem, 1);
+            }
         }
         player.getEquipment().put(item.slot(), item.id());
         recalculateBonuses(player, itemLookup);
@@ -25,7 +39,11 @@ public final class EquipmentService {
     }
 
     public void unequip(Player player, EquipmentSlot slot, Map<String, ItemDefinition> itemLookup) {
-        player.getEquipment().remove(slot);
+        String itemId = player.getEquipment().remove(slot);
+        ItemDefinition item = itemId == null ? null : itemLookup.get(itemId);
+        if (item != null) {
+            player.getInventory().addItem(item, 1);
+        }
         recalculateBonuses(player, itemLookup);
     }
 

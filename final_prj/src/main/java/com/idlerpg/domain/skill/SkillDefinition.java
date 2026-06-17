@@ -9,8 +9,22 @@ public record SkillDefinition(
         int durationTicks,
         String rewardItemId,
         int rewardQuantity,
-        int expReward
+        int expReward,
+        String consumeItemId,
+        int consumeQuantity
 ) implements Identifiable {
+    public SkillDefinition(
+            String id,
+            String name,
+            ActionType actionType,
+            int durationTicks,
+            String rewardItemId,
+            int rewardQuantity,
+            int expReward
+    ) {
+        this(id, name, actionType, durationTicks, rewardItemId, rewardQuantity, expReward, "", 0);
+    }
+
     public SkillDefinition {
         if (id == null || id.isBlank()) {
             throw new IllegalArgumentException("Skill id is required.");
@@ -32,6 +46,15 @@ public record SkillDefinition(
         }
         if (expReward < 0) {
             throw new IllegalArgumentException("Experience reward cannot be negative.");
+        }
+        consumeItemId = consumeItemId == null ? "" : consumeItemId;
+        if (consumeQuantity < 0) {
+            throw new IllegalArgumentException("Consume quantity cannot be negative.");
+        }
+        if (consumeItemId.isBlank()) {
+            consumeQuantity = 0;
+        } else if (consumeQuantity <= 0) {
+            throw new IllegalArgumentException("Consume quantity must be positive when consume item is set.");
         }
     }
 }

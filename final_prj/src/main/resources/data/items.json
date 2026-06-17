@@ -24,7 +24,18 @@
     "value": 8,
     "description": "河畔釣起的新鮮魚，可販售換取金幣。",
     "icon": "≈",
-    "rarity": "COMMON"
+    "rarity": "COMMON",
+    "healAmount": 12
+  },
+  {
+    "id": "cooked_fish",
+    "name": "熟魚",
+    "type": "CONSUMABLE",
+    "value": 14,
+    "description": "用營火烤熟的河魚，比生魚更有價值。",
+    "icon": "♨",
+    "rarity": "COMMON",
+    "healAmount": 28
   },
   {
     "id": "shadow_herb",

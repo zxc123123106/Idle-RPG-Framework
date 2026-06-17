@@ -199,6 +199,13 @@ public final class Player {
         currentHp = getMaxHp();
     }
 
+    public void heal(int amount) {
+        if (amount < 0) {
+            throw new IllegalArgumentException("Heal amount cannot be negative.");
+        }
+        currentHp = Math.min(getMaxHp(), currentHp + amount);
+    }
+
     public boolean isDefeated() {
         return currentHp <= 0;
     }

@@ -21,5 +21,8 @@ class JsonDataLoaderTest {
                 .map(item -> item.id())
                 .collect(Collectors.toSet());
         assertTrue(data.skills().stream().allMatch(skill -> itemIds.contains(skill.rewardItemId())));
+        assertTrue(data.skills().stream()
+                .filter(skill -> !skill.consumeItemId().isBlank())
+                .allMatch(skill -> itemIds.contains(skill.consumeItemId())));
     }
 }

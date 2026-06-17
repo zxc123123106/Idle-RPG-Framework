@@ -53,4 +53,63 @@ class GatheringServiceTest {
                 .getQuantity());
         assertEquals(12, testContext.context().getPlayer().getExperience());
     }
+
+    @Test
+    void cookingConsumesIngredientBeforeAddingReward() {
+        TestGameContextFactory.TestContext testContext = TestGameContextFactory.create();
+        ItemDefinition fish = new ItemDefinition("river_fish", "River Fish", ItemType.CONSUMABLE, 8);
+        ItemDefinition cookedFish = new ItemDefinition("cooked_fish", "Cooked Fish", ItemType.CONSUMABLE, 14);
+        SkillDefinition skill = new SkillDefinition(
+                "cook_fish",
+                "Cook Fish",
+                ActionType.COOKING,
+                1,
+                "cooked_fish",
+                1,
+                18,
+                "river_fish",
+                1
+        );
+        testContext.itemRegistry().register(fish);
+        testContext.itemRegistry().register(cookedFish);
+        testContext.skillRegistry().register(skill);
+        testContext.context().getPlayer().getInventory().addItem(fish, 1);
+        GatheringService service = new GatheringService(new SkillFactory());
+
+        service.start(skill);
+        service.tick(testContext.context());
+
+        assertEquals(0, testContext.context().getPlayer().getInventory().getQuantity("river_fish"));
+        assertEquals(1, testContext.context().getPlayer().getInventory().getQuantity("cooked_fish"));
+        assertEquals(18, testContext.context().getPlayer().getExperience());
+    }
+
+    @Test
+    void cookingWithoutIngredientDoesNotAddReward() {
+        TestGameContextFactory.TestContext testContext = TestGameContextFactory.create();
+        ItemDefinition fish = new ItemDefinition("river_fish", "River Fish", ItemType.CONSUMABLE, 8);
+        ItemDefinition cookedFish = new ItemDefinition("cooked_fish", "Cooked Fish", ItemType.CONSUMABLE, 14);
+        SkillDefinition skill = new SkillDefinition(
+                "cook_fish",
+                "Cook Fish",
+                ActionType.COOKING,
+                1,
+                "cooked_fish",
+                1,
+                18,
+                "river_fish",
+                1
+        );
+        testContext.itemRegistry().register(fish);
+        testContext.itemRegistry().register(cookedFish);
+        testContext.skillRegistry().register(skill);
+        GatheringService service = new GatheringService(new SkillFactory());
+
+        service.start(skill);
+        service.tick(testContext.context());
+
+        assertEquals(0, testContext.context().getPlayer().getInventory().getQuantity("river_fish"));
+        assertEquals(0, testContext.context().getPlayer().getInventory().getQuantity("cooked_fish"));
+        assertEquals(0, testContext.context().getPlayer().getExperience());
+    }
 }

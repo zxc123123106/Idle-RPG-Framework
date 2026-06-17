@@ -36,9 +36,11 @@ class EquipmentServiceTest {
 
         assertTrue(equipped);
         assertEquals(23, player.getAttackPower());
+        assertEquals(0, player.getInventory().getQuantity(sword.id()));
 
         service.unequip(player, EquipmentSlot.WEAPON, Map.of(sword.id(), sword));
 
         assertEquals(15, player.getAttackPower());
+        assertEquals(1, player.getInventory().getQuantity(sword.id()));
     }
 }

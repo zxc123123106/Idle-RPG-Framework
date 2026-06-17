@@ -63,12 +63,7 @@
     -fx-min-width: 170px;
 }
 
-.skill-rail .list-view {
-    -fx-background-color: transparent;
-    -fx-border-color: transparent;
-}
-
-.skill-rail .list-cell {
+.side-entry-card {
     -fx-background-color: #292929;
     -fx-border-color: #396f8a;
     -fx-border-width: 2px;
@@ -79,15 +74,21 @@
     -fx-font-weight: 900;
     -fx-padding: 6px 7px;
     -fx-min-height: 56px;
+    -fx-cursor: hand;
 }
 
-.skill-rail .list-cell:odd {
+.side-entry-alt {
     -fx-border-color: #6f7b3d;
 }
 
-.skill-rail .list-cell:selected {
-    -fx-background-color: #343434;
-    -fx-effect: dropshadow(gaussian, #73d9ff, 9, 0.45, 0, 0);
+.side-entry-selected {
+    -fx-background-color: #263946;
+    -fx-border-color: #8feeff;
+    -fx-border-width: 3px;
+}
+
+.side-entry-card:hover {
+    -fx-background-color: #303030;
 }
 
 .inventory-rail {
@@ -111,8 +112,13 @@
     -fx-border-width: 2px;
     -fx-background-radius: 10px;
     -fx-border-radius: 10px;
-    -fx-padding: 12px;
-    -fx-min-height: 190px;
+    -fx-padding: 10px;
+    -fx-min-height: 170px;
+}
+
+.compact-action-button {
+    -fx-padding: 8px 9px;
+    -fx-font-size: 12px;
 }
 
 .stage-area {
@@ -308,20 +314,35 @@
     -fx-background-color: #f15a4a;
 }
 
+.profile-chip .progress-bar {
+    -fx-min-height: 8px;
+    -fx-pref-height: 8px;
+    -fx-max-height: 8px;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
 .profile-chip .progress-bar > .bar {
-    -fx-padding: 3px;
+    -fx-background-insets: 0;
+    -fx-background-radius: 999px;
+    -fx-padding: 4px;
 }
 
 .profile-chip .progress-bar > .track {
-    -fx-background-color: #1b1b1b;
+    -fx-background-color: #161616;
+    -fx-background-insets: 0;
+    -fx-background-radius: 999px;
+    -fx-border-color: #5b5b5b;
+    -fx-border-width: 1px;
+    -fx-border-radius: 999px;
 }
 
 .micro-exp-bar > .bar {
-    -fx-background-color: #68d0f6;
+    -fx-background-color: linear-gradient(to right, #68d0f6, #2f87ff);
 }
 
 .micro-hp-bar > .bar {
-    -fx-background-color: #f15a4a;
+    -fx-background-color: linear-gradient(to right, #f15a4a, #ff9a5a);
 }
 
 .combo-box-base,

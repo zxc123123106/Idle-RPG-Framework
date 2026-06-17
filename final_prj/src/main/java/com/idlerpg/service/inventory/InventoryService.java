@@ -21,6 +21,10 @@ public final class InventoryService {
         eventBus.publish(new ItemAddedEvent(item, quantity, Instant.now()));
     }
 
+    public boolean removeItem(Player player, String itemId, int quantity) {
+        return player.getInventory().removeItem(itemId, quantity);
+    }
+
     public List<InventoryStack> getInventory(Player player) {
         return player.getInventory().getStacks();
     }

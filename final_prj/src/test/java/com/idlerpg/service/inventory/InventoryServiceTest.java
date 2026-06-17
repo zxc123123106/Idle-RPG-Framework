@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class InventoryServiceTest {
     @Test
@@ -28,5 +29,19 @@ class InventoryServiceTest {
         assertEquals(3, service.getInventory(player).getFirst().getQuantity());
         assertEquals(36, service.getTotalValue(player));
         assertEquals(2, eventCount.get());
+    }
+
+    @Test
+    void removeItemDeletesQuantityFromStack() {
+        EventBus eventBus = EventBus.createStandalone();
+        InventoryService service = new InventoryService(eventBus);
+        Player player = new Player();
+        ItemDefinition fish = new ItemDefinition("river_fish", "River Fish", ItemType.CONSUMABLE, 8);
+        service.addItem(player, fish, 3);
+
+        assertTrue(service.removeItem(player, fish.id(), 3));
+
+        assertEquals(0, player.getInventory().getQuantity(fish.id()));
+        assertEquals(0, service.getInventory(player).size());
     }
 }

@@ -107,7 +107,7 @@ com.idlerpg.Launcher
 2. 在 `背包` 分頁選擇裝備，點擊 `裝備選中道具`。
 3. 在 `裝備` 分頁查看目前裝備欄位，也可卸下選中欄位。
 
-存檔與離線收益：
+存檔：
 
 - 遊戲會自動定期存檔，也可以點擊右上角 `手動存檔`。
 - 存檔位置預設為：
@@ -115,8 +115,6 @@ com.idlerpg.Launcher
 ```text
 ~/.idle-rpg-framework/save.json
 ```
-
-- 如果關閉遊戲時仍有採集活動，重新開啟時會計算最多 8 小時的離線收益。
 
 ## 4. 修改遊戲資料
 
@@ -425,7 +423,6 @@ InventoryServiceTest
 GatheringServiceTest
 CombatServiceTest
 SaveServiceTest
-OfflineProgressServiceTest
 RegionServiceTest
 QuestServiceTest
 ShopServiceTest
@@ -587,7 +584,7 @@ src/main/resources/view/css/app.css
 2. `data/*.json` 展示 Data-Driven Design。
 3. `EventBus` 展示事件驅動與 Observer Pattern。
 4. `RegionRegistry`、`QuestRegistry`、`ShopRegistry` 展示可擴充內容管理。
-5. `SaveService` 與 `OfflineProgressService` 展示完整 Idle RPG 體驗。
+5. `SaveService` 展示遊戲狀態保存與讀取。
 6. `Factory`、`Strategy`、`Command` 展示設計模式。
 7. JavaFX 深色 UI 展示 MVC 分層，View 不直接操作遊戲邏輯。
 8. `docs/uml` 展示 UML 文件。

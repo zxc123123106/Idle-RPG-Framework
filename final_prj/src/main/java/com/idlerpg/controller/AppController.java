@@ -29,6 +29,7 @@ import com.idlerpg.domain.enemy.EnemyInstance;
 import com.idlerpg.domain.item.EquipmentSlot;
 import com.idlerpg.domain.item.InventoryStack;
 import com.idlerpg.domain.item.ItemDefinition;
+import com.idlerpg.domain.item.ItemType;
 import com.idlerpg.domain.player.Player;
 import com.idlerpg.domain.quest.QuestDefinition;
 import com.idlerpg.domain.region.RegionDefinition;
@@ -41,8 +42,6 @@ import com.idlerpg.service.combat.CombatService;
 import com.idlerpg.service.equipment.EquipmentService;
 import com.idlerpg.service.gathering.GatheringService;
 import com.idlerpg.service.inventory.InventoryService;
-import com.idlerpg.service.offline.OfflineProgressResult;
-import com.idlerpg.service.offline.OfflineProgressService;
 import com.idlerpg.service.progression.ProgressionService;
 import com.idlerpg.service.quest.QuestService;
 import com.idlerpg.service.region.RegionService;
@@ -71,11 +70,14 @@ import javafx.util.Duration;
 import javafx.util.StringConverter;
 
 import java.io.IOException;
-import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public final class AppController {
     @FXML private Label levelLabel;
@@ -90,13 +92,15 @@ public final class AppController {
     @FXML private ProgressBar expBar;
     @FXML private ProgressBar playerHpBar;
 
-    @FXML private ListView<SideEntry> skillListView;
+    @FXML private VBox sideEntryBox;
+    @FXML private ComboBox<InventoryFilter> inventoryFilterComboBox;
     @FXML private ListView<InventoryStack> inventoryListView;
     @FXML private Label itemDetailNameLabel;
     @FXML private Label itemDetailMetaLabel;
     @FXML private Label itemDetailDescriptionLabel;
     @FXML private Label itemDetailStatsLabel;
     @FXML private Button inventoryEquipButton;
+    @FXML private Button inventoryDeleteButton;
 
     @FXML private ScrollPane eventView;
     @FXML private ScrollPane combatView;
@@ -133,7 +137,6 @@ public final class AppController {
     @FXML private ComboBox<RegionDefinition> regionComboBox;
     @FXML private ListView<ShopEntry> shopListView;
 
-    @FXML private Button combatNavButton;
     @FXML private Button equipmentNavButton;
     @FXML private Button journalNavButton;
     @FXML private Button mapNavButton;
@@ -142,7 +145,6 @@ public final class AppController {
     private final ObservableList<InventoryStack> inventoryRows = FXCollections.observableArrayList();
     private final ObservableList<ShopEntry> shopRows = FXCollections.observableArrayList();
     private final ObservableList<QuestDefinition> questRows = FXCollections.observableArrayList();
-    private final ObservableList<SideEntry> sideRows = FXCollections.observableArrayList();
     private final ObservableList<EquipmentSlot> equipmentRows = FXCollections.observableArrayList(EquipmentSlot.values());
     private final Map<String, ItemDefinition> itemLookup = new LinkedHashMap<>();
 
@@ -163,7 +165,6 @@ public final class AppController {
     private MainViewMode currentViewMode = MainViewMode.EVENT;
     private SideEntry selectedSideEntry;
     private InventoryStack selectedInventoryStack;
-    private boolean updatingSideEntries;
 
     @FXML
     private void initialize() {
@@ -176,11 +177,6 @@ public final class AppController {
         } catch (IOException exception) {
             throw new IllegalStateException("無法載入遊戲資料：" + exception.getMessage(), exception);
         }
-    }
-
-    @FXML
-    private void onShowCombat() {
-        showMode(MainViewMode.COMBAT);
     }
 
     @FXML
@@ -229,6 +225,10 @@ public final class AppController {
         SkillDefinition selectedSkill = skillComboBox.getSelectionModel().getSelectedItem();
         if (selectedSkill == null) {
             notifyPlayer("目前區域沒有可用的採集");
+            return;
+        }
+        if (!hasRequiredItems(selectedSkill)) {
+            notifyPlayer("材料不足：" + requiredItemsText(selectedSkill));
             return;
         }
         new StartActionCommand(gatheringService, selectedSkill, player).execute();
@@ -305,7 +305,24 @@ public final class AppController {
 
     @FXML
     private void onEquipSelectedInventory() {
-        equipSelectedInventoryStack();
+        useSelectedInventoryStack();
+    }
+
+    @FXML
+    private void onDeleteSelectedInventory() {
+        if (selectedInventoryStack == null) {
+            notifyPlayer("請先在右側背包選擇物品");
+            return;
+        }
+        ItemDefinition item = selectedInventoryStack.getItem();
+        int quantity = selectedInventoryStack.getQuantity();
+        if (inventoryService.removeItem(player, item.id(), quantity)) {
+            notifyPlayer("已刪除：" + item.name() + " x" + quantity);
+            selectedInventoryStack = null;
+            inventoryListView.getSelectionModel().clearSelection();
+            refreshAll();
+            saveGame("已自動存檔");
+        }
     }
 
     @FXML
@@ -383,15 +400,7 @@ public final class AppController {
         context.setEquipmentService(equipmentService);
 
         restoreSaveIfPresent(itemRegistry);
-        OfflineProgressResult offlineResult = new OfflineProgressService()
-                .applyOfflineProgress(context, Instant.now().getEpochSecond());
-        if (offlineResult.hasRewards()) {
-            ItemDefinition item = itemLookup.get(offlineResult.itemId());
-            addReward("離線收益：" + item.name() + " x" + offlineResult.quantity()
-                    + "，EXP +" + offlineResult.experience());
-        }
         regionService.unlockEligibleRegions(player);
-        resumeSavedActivity();
         subscribeToEvents(eventBus);
         engine = new GameEngine(context);
         engine.register(gatheringService);
@@ -406,6 +415,7 @@ public final class AppController {
             Optional<com.idlerpg.domain.save.SaveGame> saveGame = saveService.load();
             if (saveGame.isPresent()) {
                 saveService.restore(player, saveGame.get(), itemRegistry);
+                player.setActiveSkillId("");
                 equipmentService.recalculateBonuses(player, itemLookup);
                 saveStatusLabel.setText("已載入存檔");
             } else {
@@ -417,32 +427,8 @@ public final class AppController {
         }
     }
 
-    private void resumeSavedActivity() {
-        if (player.getActiveSkillId().isBlank()) {
-            return;
-        }
-        context.getSkillRegistry().get(player.getActiveSkillId())
-                .ifPresent(skill -> gatheringService.start(player, skill));
-    }
-
     private void configureLists() {
-        skillListView.setItems(sideRows);
-        skillListView.setCellFactory(list -> new ListCell<>() {
-            @Override
-            protected void updateItem(SideEntry entry, boolean empty) {
-                super.updateItem(entry, empty);
-                setText(empty || entry == null ? null : sideEntryText(entry));
-            }
-        });
-        skillListView.getSelectionModel().selectedItemProperty().addListener((observable, oldEntry, newEntry) -> {
-            if (updatingSideEntries || newEntry == null) {
-                return;
-            }
-            selectedSideEntry = newEntry;
-            currentViewMode = MainViewMode.EVENT;
-            refreshSkillOptions();
-            refreshMainView();
-        });
+        sideEntryBox.setFocusTraversable(false);
 
         inventoryListView.setItems(inventoryRows);
         inventoryListView.setCellFactory(list -> new ListCell<>() {
@@ -514,6 +500,25 @@ public final class AppController {
     }
 
     private void configureComboBoxes() {
+        inventoryFilterComboBox.setItems(FXCollections.observableArrayList(InventoryFilter.values()));
+        inventoryFilterComboBox.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(InventoryFilter filter) {
+                return filter == null ? "" : filter.label();
+            }
+
+            @Override
+            public InventoryFilter fromString(String string) {
+                return null;
+            }
+        });
+        inventoryFilterComboBox.getSelectionModel().select(InventoryFilter.ALL);
+        inventoryFilterComboBox.getSelectionModel().selectedItemProperty().addListener((observable, oldFilter, newFilter) -> {
+            if (player != null && inventoryService != null) {
+                refreshInventory();
+            }
+        });
+
         regionComboBox.setConverter(new StringConverter<>() {
             @Override
             public String toString(RegionDefinition region) {
@@ -615,8 +620,15 @@ public final class AppController {
         hpLabel.setText(player.getCurrentHp() + " / " + player.getMaxHp());
         attackLabel.setText(Integer.toString(player.getAttackPower()));
         defenseLabel.setText(Integer.toString(player.getDefense()));
-        expBar.setProgress((double) player.getExperience() / player.getExperienceToNextLevel());
-        playerHpBar.setProgress((double) player.getCurrentHp() / player.getMaxHp());
+        expBar.setProgress(progressRatio(player.getExperience(), player.getExperienceToNextLevel()));
+        playerHpBar.setProgress(progressRatio(player.getCurrentHp(), player.getMaxHp()));
+    }
+
+    private double progressRatio(int current, int maximum) {
+        if (maximum <= 0) {
+            return 0.0;
+        }
+        return Math.max(0.0, Math.min(1.0, (double) current / maximum));
     }
 
     private void refreshRegion() {
@@ -640,22 +652,84 @@ public final class AppController {
 
     private void refreshSideEntries() {
         String selectedId = selectedSideEntry == null ? "mining" : selectedSideEntry.id();
-        updatingSideEntries = true;
-        sideRows.setAll(
-                new SideEntry("attack", "⚔", "Attack", SideEntryKind.ATTACK, null),
-                new SideEntry("health", "❤", "Health", SideEntryKind.HEALTH, null),
-                new SideEntry("defence", "▣", "Defence", SideEntryKind.DEFENSE, null),
-                new SideEntry("mining", "⛏", "Mining", SideEntryKind.SKILL, ActionType.MINING),
-                new SideEntry("fishing", "≈", "Fishing", SideEntryKind.SKILL, ActionType.FISHING),
-                new SideEntry("gathering", "✦", "Gathering", SideEntryKind.SKILL_OVERVIEW, null)
-        );
-        selectedSideEntry = sideRows.stream()
+        List<SideEntry> entries = new ArrayList<>();
+        entries.add(new SideEntry("attack", "⚔", "Attack", SideEntryKind.ATTACK, null));
+        entries.add(new SideEntry("health", "❤", "Health", SideEntryKind.HEALTH, null));
+        entries.add(new SideEntry("defence", "▣", "Defence", SideEntryKind.DEFENSE, null));
+
+        Set<ActionType> availableActionTypes = currentRegionActionTypes();
+        for (ActionType actionType : ActionType.values()) {
+            if (availableActionTypes.contains(actionType)) {
+                entries.add(new SideEntry(
+                        actionType.name().toLowerCase(),
+                        actionTypeIcon(actionType),
+                        actionTypeTitle(actionType),
+                        SideEntryKind.SKILL,
+                        actionType
+                ));
+            }
+        }
+
+        selectedSideEntry = entries.stream()
                 .filter(entry -> entry.id().equals(selectedId))
                 .findFirst()
-                .orElse(sideRows.get(3));
-        skillListView.getSelectionModel().select(selectedSideEntry);
-        updatingSideEntries = false;
-        skillListView.refresh();
+                .orElseGet(() -> entries.stream()
+                        .filter(entry -> entry.kind() == SideEntryKind.SKILL)
+                        .findFirst()
+                        .orElse(entries.get(0)));
+        renderSideEntries(entries);
+    }
+
+    private void renderSideEntries(List<SideEntry> entries) {
+        if (sideEntryBox.getChildren().size() != entries.size()) {
+            sideEntryBox.getChildren().clear();
+            for (int index = 0; index < entries.size(); index++) {
+                Label label = new Label();
+                label.setMaxWidth(Double.MAX_VALUE);
+                label.setFocusTraversable(false);
+                label.getStyleClass().add("side-entry-card");
+                sideEntryBox.getChildren().add(label);
+            }
+        }
+        for (int index = 0; index < entries.size(); index++) {
+            SideEntry entry = entries.get(index);
+            Label label = (Label) sideEntryBox.getChildren().get(index);
+            label.setText(sideEntryText(entry));
+            label.getStyleClass().removeAll("side-entry-alt", "side-entry-selected");
+            if (index % 2 == 1) {
+                label.getStyleClass().add("side-entry-alt");
+            }
+            if (entry.equals(selectedSideEntry)) {
+                label.getStyleClass().add("side-entry-selected");
+            }
+            label.setOnMouseClicked(event -> selectSideEntry(entry));
+        }
+    }
+
+    private void selectSideEntry(SideEntry entry) {
+        selectedSideEntry = entry;
+        if (opensCombatView(entry)) {
+            currentViewMode = MainViewMode.COMBAT;
+        } else {
+            currentViewMode = MainViewMode.EVENT;
+            refreshSkillOptions();
+        }
+        refreshSideEntries();
+        refreshMainView();
+    }
+
+    private Set<ActionType> currentRegionActionTypes() {
+        if (context == null || regionService == null || player == null) {
+            return EnumSet.noneOf(ActionType.class);
+        }
+        Set<ActionType> actionTypes = EnumSet.noneOf(ActionType.class);
+        RegionDefinition region = regionService.getCurrentRegion(player);
+        for (String skillId : region.skillIds()) {
+            context.getSkillRegistry().get(skillId)
+                    .map(SkillDefinition::actionType)
+                    .ifPresent(actionTypes::add);
+        }
+        return actionTypes;
     }
 
     private void refreshSkillOptions() {
@@ -738,7 +812,13 @@ public final class AppController {
 
     private void refreshInventory() {
         String selectedItemId = selectedInventoryStack == null ? "" : selectedInventoryStack.getItem().id();
-        inventoryRows.setAll(inventoryService.getInventory(player));
+        ItemType selectedType = selectedInventoryFilterType();
+        inventoryRows.setAll(inventoryService.getInventory(player).stream()
+                .filter(stack -> selectedType == null || stack.getItem().type() == selectedType)
+                .sorted(Comparator
+                        .comparingInt((InventoryStack stack) -> stack.getItem().type().ordinal())
+                        .thenComparing(stack -> stack.getItem().name()))
+                .toList());
         InventoryStack stackToSelect = inventoryRows.stream()
                 .filter(stack -> stack.getItem().id().equals(selectedItemId))
                 .findFirst()
@@ -751,6 +831,11 @@ public final class AppController {
             selectedInventoryStack = stackToSelect;
         }
         refreshItemDetail();
+    }
+
+    private ItemType selectedInventoryFilterType() {
+        InventoryFilter filter = inventoryFilterComboBox.getSelectionModel().getSelectedItem();
+        return filter == null ? null : filter.itemType();
     }
 
     private void refreshShop() {
@@ -785,7 +870,6 @@ public final class AppController {
         setVisibleManaged(journalView, currentViewMode == MainViewMode.JOURNAL);
         setVisibleManaged(mapView, currentViewMode == MainViewMode.MAP);
         setVisibleManaged(shopView, currentViewMode == MainViewMode.SHOP);
-        setNavActive(combatNavButton, currentViewMode == MainViewMode.COMBAT);
         setNavActive(equipmentNavButton, currentViewMode == MainViewMode.EQUIPMENT);
         setNavActive(journalNavButton, currentViewMode == MainViewMode.JOURNAL);
         setNavActive(mapNavButton, currentViewMode == MainViewMode.MAP);
@@ -796,7 +880,7 @@ public final class AppController {
 
     private void refreshEventView() {
         if (selectedSideEntry == null) {
-            selectedSideEntry = new SideEntry("mining", "⛏", "Mining", SideEntryKind.SKILL, ActionType.MINING);
+            selectedSideEntry = new SideEntry("attack", "⚔", "Attack", SideEntryKind.ATTACK, null);
         }
         eventTitleLabel.setText(selectedSideEntry.title());
         eventHeroLabel.setText(selectedSideEntry.icon());
@@ -819,7 +903,7 @@ public final class AppController {
                     "目前裝備欄：" + player.getEquipment().size() + " / " + EquipmentSlot.values().length,
                     equipmentBonusText("防禦", EquipmentSlot.ARMOR, EquipmentSlot.TRINKET)
             );
-            case SKILL, SKILL_OVERVIEW -> showSkillEvent();
+            case SKILL -> showSkillEvent();
         }
     }
 
@@ -838,9 +922,7 @@ public final class AppController {
 
     private void refreshSkillPanel() {
         SkillDefinition selectedSkill = skillComboBox.getSelectionModel().getSelectedItem();
-        String title = selectedSideEntry.kind() == SideEntryKind.SKILL_OVERVIEW
-                ? "採集總覽"
-                : actionTypeLabel(selectedSideEntry.actionType());
+        String title = actionTypeLabel(selectedSideEntry.actionType());
         eventTitleLabel.setText(title);
         eventSubtitleLabel.setText(selectedSkill == null ? "目前區域沒有此類事件" : selectedSkill.name());
         RegionDefinition region = regionService.getCurrentRegion(player);
@@ -869,16 +951,37 @@ public final class AppController {
                     ? "時間條：目前無事件"
                     : "時間條：約 " + selectedSkill.durationTicks() + " 秒 / 循環");
             skillToggleButton.setText("▶");
-            skillToggleButton.setDisable(selectedSkill == null);
+            skillToggleButton.setDisable(selectedSkill == null || !hasRequiredItems(selectedSkill));
         }
 
         if (selectedSkill == null) {
             skillRewardLabel.setText("目前區域無採集獎勵");
         } else {
             ItemDefinition reward = itemLookup.get(selectedSkill.rewardItemId());
-            skillRewardLabel.setText("獎勵預覽：" + reward.name()
-                    + " x" + selectedSkill.rewardQuantity() + " / EXP +" + selectedSkill.expReward());
+            skillRewardLabel.setText(skillRewardText(selectedSkill, reward));
         }
+    }
+
+    private String skillRewardText(SkillDefinition skill, ItemDefinition reward) {
+        String rewardText = "獎勵預覽：" + reward.name()
+                + " x" + skill.rewardQuantity() + " / EXP +" + skill.expReward();
+        if (skill.consumeItemId().isBlank() || skill.consumeQuantity() <= 0) {
+            return rewardText;
+        }
+        return rewardText + " / 消耗：" + requiredItemsText(skill);
+    }
+
+    private boolean hasRequiredItems(SkillDefinition skill) {
+        return skill.consumeItemId().isBlank()
+                || skill.consumeQuantity() <= 0
+                || player.getInventory().getQuantity(skill.consumeItemId()) >= skill.consumeQuantity();
+    }
+
+    private String requiredItemsText(SkillDefinition skill) {
+        ItemDefinition consumedItem = itemLookup.get(skill.consumeItemId());
+        String consumedName = consumedItem == null ? skill.consumeItemId() : consumedItem.name();
+        int available = player.getInventory().getQuantity(skill.consumeItemId());
+        return consumedName + " x" + skill.consumeQuantity() + "（持有 " + available + "）";
     }
 
     private void refreshItemDetail() {
@@ -887,7 +990,9 @@ public final class AppController {
             itemDetailMetaLabel.setText("");
             itemDetailDescriptionLabel.setText("點選背包中的物品查看詳細資訊。");
             itemDetailStatsLabel.setText("");
+            inventoryEquipButton.setText("裝備選中物品");
             inventoryEquipButton.setDisable(true);
+            inventoryDeleteButton.setDisable(true);
             return;
         }
         ItemDefinition item = selectedInventoryStack.getItem();
@@ -900,26 +1005,56 @@ public final class AppController {
                     + "  攻擊 +" + item.attackBonus()
                     + " / 防禦 +" + item.defenseBonus()
                     + " / 體力 +" + item.hpBonus());
+            inventoryEquipButton.setText("裝備選中物品");
             inventoryEquipButton.setDisable(false);
+        } else if (item.isFood()) {
+            itemDetailStatsLabel.setText("食用後回復 HP +" + item.healAmount());
+            inventoryEquipButton.setText("食用選中食品");
+            inventoryEquipButton.setDisable(player.getCurrentHp() >= player.getMaxHp());
         } else {
             itemDetailStatsLabel.setText("此物品目前不可裝備。");
+            inventoryEquipButton.setText("裝備選中物品");
             inventoryEquipButton.setDisable(true);
         }
+        inventoryDeleteButton.setDisable(false);
     }
 
-    private void equipSelectedInventoryStack() {
+    private void useSelectedInventoryStack() {
         if (selectedInventoryStack == null) {
-            notifyPlayer("請先在右側背包選擇裝備");
+            notifyPlayer("請先在右側背包選擇物品");
             return;
         }
         ItemDefinition item = selectedInventoryStack.getItem();
+        if (item.isFood()) {
+            eatSelectedFood(item);
+            return;
+        }
         if (equipmentService.equip(player, item, itemLookup)) {
             notifyPlayer("已裝備：" + item.name());
+            selectedInventoryStack = null;
+            inventoryListView.getSelectionModel().clearSelection();
             refreshAll();
             saveGame("已自動存檔");
         } else {
             notifyPlayer("這個道具無法裝備");
         }
+    }
+
+    private void eatSelectedFood(ItemDefinition item) {
+        if (player.getCurrentHp() >= player.getMaxHp()) {
+            notifyPlayer("目前 HP 已滿");
+            return;
+        }
+        if (!inventoryService.removeItem(player, item.id(), 1)) {
+            notifyPlayer("背包中沒有可食用的 " + item.name());
+            return;
+        }
+        int beforeHp = player.getCurrentHp();
+        player.heal(item.healAmount());
+        int recovered = player.getCurrentHp() - beforeHp;
+        notifyPlayer("食用：" + item.name() + "，HP +" + recovered);
+        refreshAll();
+        saveGame("已自動存檔");
     }
 
     private void showMode(MainViewMode mode) {
@@ -933,6 +1068,9 @@ public final class AppController {
     }
 
     private void setNavActive(Button button, boolean active) {
+        if (button == null) {
+            return;
+        }
         if (active) {
             if (!button.getStyleClass().contains("nav-button-active")) {
                 button.getStyleClass().add("nav-button-active");
@@ -979,8 +1117,13 @@ public final class AppController {
             case SKILL -> entry.icon() + " " + entry.title() + "  Lv." + player.getSkillLevel(entry.actionType())
                     + "\n" + player.getSkillExperience(entry.actionType())
                     + "/" + player.getSkillExperienceToNextLevel(entry.actionType());
-            case SKILL_OVERVIEW -> entry.icon() + " " + entry.title() + "\n時間條事件";
         };
+    }
+
+    private boolean opensCombatView(SideEntry entry) {
+        return entry.kind() == SideEntryKind.ATTACK
+                || entry.kind() == SideEntryKind.HEALTH
+                || entry.kind() == SideEntryKind.DEFENSE;
     }
 
     private String nextObjectiveText(RegionDefinition region) {
@@ -1056,13 +1199,30 @@ public final class AppController {
         return switch (actionType) {
             case MINING -> "採礦";
             case FISHING -> "釣魚";
+            case COOKING -> "烹飪";
+        };
+    }
+
+    private String actionTypeTitle(ActionType actionType) {
+        return switch (actionType) {
+            case MINING -> "Mining";
+            case FISHING -> "Fishing";
+            case COOKING -> "Cooking";
+        };
+    }
+
+    private String actionTypeIcon(ActionType actionType) {
+        return switch (actionType) {
+            case MINING -> "⛏";
+            case FISHING -> "≈";
+            case COOKING -> "♨";
         };
     }
 
     private String itemTypeLabel(ItemDefinition item) {
         return switch (item.type()) {
             case RESOURCE -> "資源";
-            case CONSUMABLE -> "消耗品";
+            case CONSUMABLE -> "食品";
             case EQUIPMENT -> "裝備";
             case QUEST -> "任務";
         };
@@ -1095,12 +1255,34 @@ public final class AppController {
         SHOP
     }
 
+    private enum InventoryFilter {
+        ALL(null, "全部"),
+        RESOURCE(ItemType.RESOURCE, "資源"),
+        CONSUMABLE(ItemType.CONSUMABLE, "食品"),
+        EQUIPMENT(ItemType.EQUIPMENT, "裝備");
+
+        private final ItemType itemType;
+        private final String label;
+
+        InventoryFilter(ItemType itemType, String label) {
+            this.itemType = itemType;
+            this.label = label;
+        }
+
+        private ItemType itemType() {
+            return itemType;
+        }
+
+        private String label() {
+            return label;
+        }
+    }
+
     private enum SideEntryKind {
         ATTACK,
         HEALTH,
         DEFENSE,
-        SKILL,
-        SKILL_OVERVIEW
+        SKILL
     }
 
     private record SideEntry(
