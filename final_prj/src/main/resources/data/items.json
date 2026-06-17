@@ -51,13 +51,15 @@
     "name": "青銅礦鎬",
     "type": "EQUIPMENT",
     "value": 80,
-    "description": "提高冒險者攻擊力的基礎工具。",
+    "description": "提高採礦效率的基礎工具。",
     "icon": "⛏",
     "rarity": "UNCOMMON",
     "slot": "TOOL",
-    "attackBonus": 3,
+    "attackBonus": 0,
     "defenseBonus": 0,
-    "hpBonus": 0
+    "hpBonus": 0,
+    "speedActionType": "MINING",
+    "speedBonusPercent": 35
   },
   {
     "id": "iron_sword",

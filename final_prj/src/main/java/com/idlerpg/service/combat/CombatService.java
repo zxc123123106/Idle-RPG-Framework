@@ -55,7 +55,7 @@ public final class CombatService implements Tickable {
         }
 
         Player player = context.getPlayer();
-        int playerDamage = player.getAttackPower();
+        int playerDamage = Math.max(1, player.getAttackPower() - activeEnemy.getDefinition().defense());
         activeEnemy.takeDamage(playerDamage);
         eventBus.publish(new CombatEvent(
                 CombatEvent.Type.HIT,

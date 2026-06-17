@@ -7,6 +7,7 @@
 <?import javafx.scene.control.ListView?>
 <?import javafx.scene.control.ProgressBar?>
 <?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Spinner?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Priority?>
@@ -45,7 +46,7 @@
                 <center>
                     <VBox alignment="CENTER" spacing="1.0">
                         <Label styleClass="screen-title" text="暮境放置冒險"/>
-                        <Label fx:id="regionTitleLabel" styleClass="screen-subtitle" text="晨光草原"/>
+                        <Label fx:id="regionTitleLabel" styleClass="screen-subtitle" text="新手村"/>
                     </VBox>
                 </center>
                 <right>
@@ -115,6 +116,7 @@
                             <Label fx:id="combatStatusLabel" styleClass="large-status" text="目前沒有戰鬥"/>
                             <ProgressBar fx:id="enemyHpBar" maxWidth="620.0" prefHeight="24.0" progress="0.0" styleClass="combat-progress-bar"/>
                             <Label fx:id="combatProgressLabel" styleClass="time-label" text="生命條：0 / 0"/>
+                            <Label fx:id="combatHintLabel" maxWidth="720.0" styleClass="combat-hint" wrapText="true" text="選擇敵人後會顯示戰鬥計算。"/>
                             <Button fx:id="combatToggleButton" onAction="#onToggleCombat" styleClass="primary-toggle-button" text="⚔"/>
                         </VBox>
                     </content>
@@ -155,8 +157,7 @@
                             <Label styleClass="stage-title" text="地圖"/>
                             <Label styleClass="scene-pixel" text="☾"/>
                             <Label fx:id="regionDescriptionLabel" styleClass="scene-description" wrapText="true" text="區域描述"/>
-                            <ComboBox fx:id="regionComboBox" maxWidth="560.0"/>
-                            <Button maxWidth="560.0" onAction="#onSwitchRegion" text="前往選擇區域"/>
+                            <VBox fx:id="mapRegionBox" maxWidth="760.0" spacing="10.0"/>
                         </VBox>
                     </content>
                 </ScrollPane>
@@ -165,9 +166,13 @@
                     <content>
                         <VBox alignment="CENTER" spacing="14.0" styleClass="stage-page">
                             <Label styleClass="stage-title" text="商店"/>
-                            <Label styleClass="scene-description" text="目前區域可購買商品"/>
+                            <HBox alignment="CENTER" spacing="10.0">
+                                <ComboBox fx:id="shopModeComboBox" maxWidth="160.0"/>
+                                <Spinner fx:id="shopQuantitySpinner" editable="true" maxWidth="120.0"/>
+                            </HBox>
+                            <Label fx:id="shopDescriptionLabel" styleClass="scene-description" text="目前區域可購買商品"/>
                             <ListView fx:id="shopListView" maxHeight="330.0" maxWidth="720.0"/>
-                            <Button maxWidth="520.0" onAction="#onBuySelected" text="購買選中商品"/>
+                            <Button fx:id="shopActionButton" maxWidth="520.0" onAction="#onShopAction" text="購買選中商品"/>
                         </VBox>
                     </content>
                 </ScrollPane>

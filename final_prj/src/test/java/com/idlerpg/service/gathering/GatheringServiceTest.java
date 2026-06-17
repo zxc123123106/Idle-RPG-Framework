@@ -3,7 +3,9 @@ package com.idlerpg.service.gathering;
 import com.idlerpg.TestGameContextFactory;
 import com.idlerpg.core.event.ItemAddedEvent;
 import com.idlerpg.core.event.SkillProgressEvent;
+import com.idlerpg.domain.item.EquipmentSlot;
 import com.idlerpg.domain.item.ItemDefinition;
+import com.idlerpg.domain.item.ItemRarity;
 import com.idlerpg.domain.item.ItemType;
 import com.idlerpg.domain.skill.ActionType;
 import com.idlerpg.domain.skill.SkillDefinition;
@@ -111,5 +113,52 @@ class GatheringServiceTest {
         assertEquals(0, testContext.context().getPlayer().getInventory().getQuantity("river_fish"));
         assertEquals(0, testContext.context().getPlayer().getInventory().getQuantity("cooked_fish"));
         assertEquals(0, testContext.context().getPlayer().getExperience());
+    }
+
+    @Test
+    void completionUsesToolSpeedBonus() {
+        TestGameContextFactory.TestContext testContext = TestGameContextFactory.create();
+        ItemDefinition ore = new ItemDefinition("copper_ore", "Copper Ore", ItemType.RESOURCE, 5);
+        ItemDefinition pickaxe = new ItemDefinition(
+                "bronze_pickaxe",
+                "Bronze Pickaxe",
+                ItemType.EQUIPMENT,
+                80,
+                "",
+                "⛏",
+                ItemRarity.UNCOMMON,
+                EquipmentSlot.TOOL,
+                0,
+                0,
+                0,
+                0,
+                ActionType.MINING,
+                35
+        );
+        SkillDefinition skill = new SkillDefinition(
+                "mine_copper",
+                "Mine Copper",
+                ActionType.MINING,
+                10,
+                "copper_ore",
+                1,
+                10
+        );
+        testContext.itemRegistry().register(ore);
+        testContext.itemRegistry().register(pickaxe);
+        testContext.skillRegistry().register(skill);
+        testContext.context().getPlayer().getEquipment().put(EquipmentSlot.TOOL, pickaxe.id());
+        GatheringService service = new GatheringService(new SkillFactory());
+
+        service.start(skill);
+        for (int tick = 0; tick < 6; tick++) {
+            service.tick(testContext.context());
+        }
+
+        assertEquals(0, testContext.context().getPlayer().getInventory().getQuantity("copper_ore"));
+
+        service.tick(testContext.context());
+
+        assertEquals(1, testContext.context().getPlayer().getInventory().getQuantity("copper_ore"));
     }
 }

@@ -41,4 +41,24 @@ class CombatServiceTest {
         assertEquals(25, testContext.context().getPlayer().getExperience());
         assertEquals(6, testContext.context().getPlayer().getGold());
     }
+
+    @Test
+    void enemyDefenseReducesPlayerDamage() {
+        TestGameContextFactory.TestContext testContext = TestGameContextFactory.create();
+        EnemyDefinition enemy = new EnemyDefinition(
+                "armored_dummy",
+                "Armored Dummy",
+                50,
+                0,
+                5,
+                0,
+                0
+        );
+
+        testContext.combatService().startCombat(enemy);
+        testContext.combatService().tick(testContext.context());
+
+        var activeEnemy = testContext.combatService().getActiveEnemy().orElseThrow();
+        assertEquals(40, activeEnemy.getCurrentHp());
+    }
 }

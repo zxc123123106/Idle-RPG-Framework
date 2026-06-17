@@ -1,11 +1,11 @@
 [
   {
     "id": "sunlit_meadow",
-    "name": "晨光草原",
-    "description": "新手冒險者開始旅程的安全區域，礦脈與河流都容易抵達。",
+    "name": "新手村",
+    "description": "新手冒險者開始旅程的安全區域，礦脈、河流與烹飪營火都容易抵達。",
     "icon": "☀",
     "requiredLevel": 1,
-    "skillIds": ["mine_copper", "fish_river", "cook_fish"],
+    "skillIds": ["mine_copper", "fish_river"],
     "enemyIds": ["training_slime"],
     "shopItemIds": ["bronze_pickaxe", "guard_vest"],
     "questIds": ["first_ore", "slime_training"]

@@ -35,7 +35,8 @@
     "rewardQuantity": 1,
     "expReward": 18,
     "consumeItemId": "river_fish",
-    "consumeQuantity": 1
+    "consumeQuantity": 1,
+    "regionRestricted": false
   },
   {
     "id": "gather_shadow_herb",

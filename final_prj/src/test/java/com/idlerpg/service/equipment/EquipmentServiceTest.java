@@ -43,4 +43,31 @@ class EquipmentServiceTest {
         assertEquals(15, player.getAttackPower());
         assertEquals(1, player.getInventory().getQuantity(sword.id()));
     }
+
+    @Test
+    void toolEquipmentDoesNotIncreaseCombatStats() {
+        Player player = new Player();
+        ItemDefinition pickaxe = new ItemDefinition(
+                "bronze_pickaxe",
+                "Bronze Pickaxe",
+                ItemType.EQUIPMENT,
+                80,
+                "",
+                "⛏",
+                ItemRarity.UNCOMMON,
+                EquipmentSlot.TOOL,
+                5,
+                3,
+                20
+        );
+        player.getInventory().addItem(pickaxe, 1);
+        EquipmentService service = new EquipmentService();
+
+        boolean equipped = service.equip(player, pickaxe, Map.of(pickaxe.id(), pickaxe));
+
+        assertTrue(equipped);
+        assertEquals(15, player.getAttackPower());
+        assertEquals(0, player.getDefense());
+        assertEquals(100, player.getMaxHp());
+    }
 }

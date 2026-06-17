@@ -53,7 +53,7 @@ public final class EquipmentService {
         int hp = 0;
         for (String itemId : player.getEquipment().values()) {
             ItemDefinition item = itemLookup.get(itemId);
-            if (item != null) {
+            if (item != null && item.slot() != EquipmentSlot.TOOL) {
                 attack += item.attackBonus();
                 defense += item.defenseBonus();
                 hp += item.hpBonus();

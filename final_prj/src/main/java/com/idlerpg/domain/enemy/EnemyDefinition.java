@@ -7,9 +7,14 @@ public record EnemyDefinition(
         String name,
         int maxHp,
         int attack,
+        int defense,
         int expReward,
         int goldReward
 ) implements Identifiable {
+    public EnemyDefinition(String id, String name, int maxHp, int attack, int expReward, int goldReward) {
+        this(id, name, maxHp, attack, 0, expReward, goldReward);
+    }
+
     public EnemyDefinition {
         if (id == null || id.isBlank()) {
             throw new IllegalArgumentException("Enemy id is required.");
@@ -20,8 +25,8 @@ public record EnemyDefinition(
         if (maxHp <= 0) {
             throw new IllegalArgumentException("Enemy max HP must be positive.");
         }
-        if (attack < 0 || expReward < 0 || goldReward < 0) {
-            throw new IllegalArgumentException("Enemy rewards and attack cannot be negative.");
+        if (attack < 0 || defense < 0 || expReward < 0 || goldReward < 0) {
+            throw new IllegalArgumentException("Enemy stats and rewards cannot be negative.");
         }
     }
 }

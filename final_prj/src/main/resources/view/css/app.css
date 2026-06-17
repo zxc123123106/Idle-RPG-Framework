@@ -153,6 +153,40 @@
     -fx-background-color: #181818;
 }
 
+.map-region-card {
+    -fx-background-color: #232323;
+    -fx-border-color: #3b7fa0;
+    -fx-border-width: 2px;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-padding: 12px 14px;
+    -fx-text-fill: #eeeeee;
+    -fx-font-weight: 900;
+    -fx-cursor: hand;
+}
+
+.map-region-current {
+    -fx-border-color: #8feeff;
+    -fx-background-color: #263946;
+}
+
+.map-region-locked {
+    -fx-opacity: 0.45;
+    -fx-border-color: #555555;
+    -fx-cursor: default;
+}
+
+.combat-hint {
+    -fx-background-color: #202020;
+    -fx-border-color: #3f3f3f;
+    -fx-border-width: 1px;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-padding: 10px 12px;
+    -fx-text-fill: #d8d8d8;
+    -fx-font-weight: 800;
+}
+
 .stage-title {
     -fx-text-fill: #eeeeee;
     -fx-font-size: 28px;

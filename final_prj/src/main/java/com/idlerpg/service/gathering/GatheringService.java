@@ -8,6 +8,7 @@ import com.idlerpg.domain.context.GameContext;
 import com.idlerpg.domain.item.ItemDefinition;
 import com.idlerpg.domain.skill.SkillDefinition;
 import com.idlerpg.factory.SkillFactory;
+import com.idlerpg.service.progression.SkillSpeedCalculator;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -55,6 +56,14 @@ public final class GatheringService implements Tickable {
         return Math.min(1.0, (double) progressTicks / activeSkill.durationTicks());
     }
 
+    public synchronized double getProgressRatio(GameContext context) {
+        int requiredTicks = getRequiredTicks(context);
+        if (requiredTicks <= 0) {
+            return 0.0;
+        }
+        return Math.min(1.0, (double) progressTicks / requiredTicks);
+    }
+
     public synchronized int getProgressTicks() {
         return progressTicks;
     }
@@ -66,18 +75,30 @@ public final class GatheringService implements Tickable {
         return activeSkill.durationTicks();
     }
 
+    public synchronized int getRequiredTicks(GameContext context) {
+        if (activeSkill == null) {
+            return 0;
+        }
+        return SkillSpeedCalculator.requiredTicks(
+                context.getPlayer(),
+                activeSkill,
+                itemId -> context.getItemRegistry().get(itemId).orElse(null)
+        );
+    }
+
     @Override
     public synchronized void tick(GameContext context) {
         if (activeSkill == null || activeStrategy == null) {
             return;
         }
 
+        int requiredTicks = getRequiredTicks(context);
         progressTicks++;
-        boolean complete = progressTicks >= activeSkill.durationTicks();
+        boolean complete = progressTicks >= requiredTicks;
         context.getEventBus().publish(new SkillProgressEvent(
                 activeSkill,
-                progressTicks,
-                activeSkill.durationTicks(),
+                Math.min(progressTicks, requiredTicks),
+                requiredTicks,
                 complete,
                 Instant.now()
         ));

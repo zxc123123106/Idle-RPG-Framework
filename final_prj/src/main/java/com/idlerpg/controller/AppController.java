@@ -43,16 +43,12 @@ import com.idlerpg.service.equipment.EquipmentService;
 import com.idlerpg.service.gathering.GatheringService;
 import com.idlerpg.service.inventory.InventoryService;
 import com.idlerpg.service.progression.ProgressionService;
+import com.idlerpg.service.progression.SkillSpeedCalculator;
 import com.idlerpg.service.quest.QuestService;
 import com.idlerpg.service.region.RegionService;
 import com.idlerpg.service.save.SaveService;
 import com.idlerpg.service.shop.ShopService;
-import javafx.animation.Animation;
-import javafx.animation.Interpolator;
-import javafx.animation.KeyFrame;
-import javafx.animation.KeyValue;
 import javafx.animation.PauseTransition;
-import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -65,6 +61,8 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Spinner;
+import javafx.scene.control.SpinnerValueFactory;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 import javafx.util.StringConverter;
@@ -73,6 +71,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -127,6 +126,7 @@ public final class AppController {
     @FXML private Label combatStatusLabel;
     @FXML private ProgressBar enemyHpBar;
     @FXML private Label combatProgressLabel;
+    @FXML private Label combatHintLabel;
     @FXML private Button combatToggleButton;
 
     @FXML private ListView<EquipmentSlot> equipmentListView;
@@ -134,8 +134,12 @@ public final class AppController {
     @FXML private Label recentRewardLabel;
     @FXML private ListView<QuestDefinition> questListView;
     @FXML private Label regionDescriptionLabel;
-    @FXML private ComboBox<RegionDefinition> regionComboBox;
-    @FXML private ListView<ShopEntry> shopListView;
+    @FXML private VBox mapRegionBox;
+    @FXML private ComboBox<ShopMode> shopModeComboBox;
+    @FXML private Spinner<Integer> shopQuantitySpinner;
+    @FXML private Label shopDescriptionLabel;
+    @FXML private ListView<ShopRow> shopListView;
+    @FXML private Button shopActionButton;
 
     @FXML private Button equipmentNavButton;
     @FXML private Button journalNavButton;
@@ -143,7 +147,7 @@ public final class AppController {
     @FXML private Button shopNavButton;
 
     private final ObservableList<InventoryStack> inventoryRows = FXCollections.observableArrayList();
-    private final ObservableList<ShopEntry> shopRows = FXCollections.observableArrayList();
+    private final ObservableList<ShopRow> shopRows = FXCollections.observableArrayList();
     private final ObservableList<QuestDefinition> questRows = FXCollections.observableArrayList();
     private final ObservableList<EquipmentSlot> equipmentRows = FXCollections.observableArrayList(EquipmentSlot.values());
     private final Map<String, ItemDefinition> itemLookup = new LinkedHashMap<>();
@@ -160,8 +164,6 @@ public final class AppController {
     private EquipmentService equipmentService;
     private SaveService saveService;
     private PauseTransition toastTimer;
-    private Timeline skillProgressAnimation;
-    private String animatedSkillId = "";
     private MainViewMode currentViewMode = MainViewMode.EVENT;
     private SideEntry selectedSideEntry;
     private InventoryStack selectedInventoryStack;
@@ -199,10 +201,12 @@ public final class AppController {
         showMode(MainViewMode.SHOP);
     }
 
-    @FXML
-    private void onSwitchRegion() {
-        RegionDefinition selectedRegion = regionComboBox.getSelectionModel().getSelectedItem();
+    private void switchRegion(RegionDefinition selectedRegion) {
         if (selectedRegion == null) {
+            return;
+        }
+        if (!player.getUnlockedRegionIds().contains(selectedRegion.id())) {
+            notifyPlayer("尚未解鎖：" + selectedRegion.name());
             return;
         }
         if (regionService.switchRegion(player, selectedRegion.id())) {
@@ -232,14 +236,12 @@ public final class AppController {
             return;
         }
         new StartActionCommand(gatheringService, selectedSkill, player).execute();
-        startSkillProgressLoop(selectedSkill);
         notifyPlayer("開始：" + selectedSkill.name());
         refreshAll();
     }
 
     private void stopAction() {
         new StopActionCommand(gatheringService, player).execute();
-        stopSkillProgressAnimation();
         notifyPlayer("已停止目前採集");
         refreshAll();
         saveGame("已自動存檔");
@@ -288,18 +290,47 @@ public final class AppController {
     }
 
     @FXML
-    private void onBuySelected() {
-        ShopEntry entry = shopListView.getSelectionModel().getSelectedItem();
-        if (entry == null) {
-            notifyPlayer("請先選擇商品");
+    private void onShopAction() {
+        ShopRow row = shopListView.getSelectionModel().getSelectedItem();
+        if (row == null) {
+            notifyPlayer(currentShopMode() == ShopMode.BUY ? "請先選擇商品" : "請先選擇要出售的物品");
             return;
         }
+        if (currentShopMode() == ShopMode.BUY) {
+            buySelectedShopEntry(row);
+        } else {
+            sellSelectedInventoryStack(row);
+        }
+    }
+
+    private void buySelectedShopEntry(ShopRow row) {
+        ShopEntry entry = row.shopEntry();
+        if (entry == null) {
+            return;
+        }
+        ItemDefinition item = itemLookup.get(entry.itemId());
         if (shopService.buy(context, entry)) {
-            notifyPlayer("購買完成：" + itemLookup.get(entry.itemId()).name());
+            notifyPlayer("購買完成：" + item.name());
             refreshAll();
             saveGame("已自動存檔");
         } else {
             notifyPlayer("金幣不足");
+        }
+    }
+
+    private void sellSelectedInventoryStack(ShopRow row) {
+        InventoryStack stack = row.inventoryStack();
+        if (stack == null) {
+            return;
+        }
+        int quantity = shopQuantitySpinner.getValue() == null ? 1 : shopQuantitySpinner.getValue();
+        quantity = Math.max(1, Math.min(quantity, stack.getQuantity()));
+        int goldEarned = stack.getItem().value() * quantity;
+        if (inventoryService.removeItem(player, stack.getItem().id(), quantity)) {
+            player.addGold(goldEarned);
+            notifyPlayer("出售：" + stack.getItem().name() + " x" + quantity + "，獲得 " + goldEarned + " G");
+            refreshAll();
+            saveGame("已自動存檔");
         }
     }
 
@@ -400,6 +431,7 @@ public final class AppController {
         context.setEquipmentService(equipmentService);
 
         restoreSaveIfPresent(itemRegistry);
+        ensureValidCurrentRegion();
         regionService.unlockEligibleRegions(player);
         subscribeToEvents(eventBus);
         engine = new GameEngine(context);
@@ -485,18 +517,16 @@ public final class AppController {
         shopListView.setItems(shopRows);
         shopListView.setCellFactory(list -> new ListCell<>() {
             @Override
-            protected void updateItem(ShopEntry entry, boolean empty) {
-                super.updateItem(entry, empty);
-                if (empty || entry == null) {
+            protected void updateItem(ShopRow row, boolean empty) {
+                super.updateItem(row, empty);
+                if (empty || row == null) {
                     setText(null);
                     return;
                 }
-                ItemDefinition item = itemLookup.get(entry.itemId());
-                String itemName = item == null ? entry.itemId() : item.name();
-                String itemMeta = item == null ? "" : rarityLabel(item) + " / " + itemTypeLabel(item);
-                setText(itemName + "  " + entry.price() + " G\n" + itemMeta);
+                setText(row.displayText());
             }
         });
+        shopListView.getSelectionModel().selectedItemProperty().addListener((observable, oldRow, newRow) -> refreshShopControls());
     }
 
     private void configureComboBoxes() {
@@ -519,17 +549,22 @@ public final class AppController {
             }
         });
 
-        regionComboBox.setConverter(new StringConverter<>() {
+        shopModeComboBox.setItems(FXCollections.observableArrayList(ShopMode.values()));
+        shopModeComboBox.setConverter(new StringConverter<>() {
             @Override
-            public String toString(RegionDefinition region) {
-                return region == null ? "" : region.icon() + " " + region.name();
+            public String toString(ShopMode mode) {
+                return mode == null ? "" : mode.label();
             }
 
             @Override
-            public RegionDefinition fromString(String string) {
+            public ShopMode fromString(String string) {
                 return null;
             }
         });
+        shopModeComboBox.getSelectionModel().select(ShopMode.BUY);
+        shopModeComboBox.getSelectionModel().selectedItemProperty().addListener((observable, oldMode, newMode) -> refreshShop());
+        shopQuantitySpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 1, 1));
+
         skillComboBox.setConverter(new StringConverter<>() {
             @Override
             public String toString(SkillDefinition skill) {
@@ -636,18 +671,69 @@ public final class AppController {
         regionTitleLabel.setText(region.icon() + " " + region.name());
         regionDescriptionLabel.setText(region.description());
         objectiveLabel.setText(nextObjectiveText(region));
-        String selectedRegionId = regionComboBox.getSelectionModel().getSelectedItem() == null
-                ? ""
-                : regionComboBox.getSelectionModel().getSelectedItem().id();
-        var unlockedRegions = regionService.getUnlockedRegions(player);
-        regionComboBox.setItems(FXCollections.observableArrayList(unlockedRegions));
-        unlockedRegions.stream()
-                .filter(unlockedRegion -> unlockedRegion.id().equals(selectedRegionId))
-                .findFirst()
-                .ifPresentOrElse(
-                        selectedRegion -> regionComboBox.getSelectionModel().select(selectedRegion),
-                        () -> regionComboBox.getSelectionModel().select(region)
-                );
+        renderMapRegions();
+    }
+
+    private void renderMapRegions() {
+        mapRegionBox.getChildren().clear();
+        String currentRegionId = player.getCurrentRegionId();
+        for (RegionDefinition region : context.getRegionRegistry().getAll()) {
+            boolean unlocked = player.getUnlockedRegionIds().contains(region.id());
+            Label card = new Label(mapRegionText(region, unlocked));
+            card.setMaxWidth(Double.MAX_VALUE);
+            card.setWrapText(true);
+            card.setFocusTraversable(false);
+            card.getStyleClass().add("map-region-card");
+            if (!unlocked) {
+                card.getStyleClass().add("map-region-locked");
+            }
+            if (region.id().equals(currentRegionId)) {
+                card.getStyleClass().add("map-region-current");
+            }
+            if (unlocked) {
+                card.setOnMouseClicked(event -> switchRegion(region));
+            }
+            mapRegionBox.getChildren().add(card);
+        }
+    }
+
+    private void ensureValidCurrentRegion() {
+        List<RegionDefinition> regions = context.getRegionRegistry().getAll();
+        if (regions.isEmpty()) {
+            throw new IllegalStateException("至少需要一個地圖資料。");
+        }
+        Set<String> validRegionIds = new HashSet<>();
+        for (RegionDefinition region : regions) {
+            validRegionIds.add(region.id());
+        }
+        player.getUnlockedRegionIds().removeIf(regionId -> !validRegionIds.contains(regionId));
+        if (validRegionIds.contains(player.getCurrentRegionId())) {
+            player.getUnlockedRegionIds().add(player.getCurrentRegionId());
+            return;
+        }
+        player.setCurrentRegionId(regions.getFirst().id());
+    }
+
+    private String mapRegionText(RegionDefinition region, boolean unlocked) {
+        String state = unlocked ? "已解鎖" : "未解鎖";
+        String requiredQuest = region.requiredQuestId().isBlank() ? "" : " / 任務：" + region.requiredQuestId();
+        Set<String> regionSkillIds = new HashSet<>(region.skillIds());
+        String regionSkills = region.skillIds().stream()
+                .map(id -> context.getSkillRegistry().get(id).map(SkillDefinition::name).orElse(id))
+                .reduce((first, second) -> first + "、" + second)
+                .orElse("無");
+        String globalSkills = context.getSkillRegistry().getAll().stream()
+                .filter(skill -> !skill.isRegionRestricted())
+                .filter(skill -> !regionSkillIds.contains(skill.id()))
+                .map(SkillDefinition::name)
+                .reduce((first, second) -> first + "、" + second)
+                .orElse("");
+        String globalText = globalSkills.isBlank() ? "" : "\n全域技能：" + globalSkills;
+        return region.icon() + " " + region.name() + "  [" + state + "]"
+                + "\n需求：Lv." + region.requiredLevel() + requiredQuest
+                + "\n地圖技能：" + regionSkills
+                + globalText
+                + "\n" + region.description();
     }
 
     private void refreshSideEntries() {
@@ -723,12 +809,9 @@ public final class AppController {
             return EnumSet.noneOf(ActionType.class);
         }
         Set<ActionType> actionTypes = EnumSet.noneOf(ActionType.class);
-        RegionDefinition region = regionService.getCurrentRegion(player);
-        for (String skillId : region.skillIds()) {
-            context.getSkillRegistry().get(skillId)
-                    .map(SkillDefinition::actionType)
-                    .ifPresent(actionTypes::add);
-        }
+        currentRegionSkills().stream()
+                .map(SkillDefinition::actionType)
+                .forEach(actionTypes::add);
         return actionTypes;
     }
 
@@ -758,13 +841,19 @@ public final class AppController {
     }
 
     private List<SkillDefinition> currentSkillOptions() {
-        RegionDefinition region = regionService.getCurrentRegion(player);
-        return region.skillIds().stream()
-                .map(id -> context.getSkillRegistry().getRequired(id))
+        return currentRegionSkills().stream()
                 .filter(skill -> selectedSideEntry == null
                         || selectedSideEntry.kind() != SideEntryKind.SKILL
                         || selectedSideEntry.actionType() == null
                         || skill.actionType() == selectedSideEntry.actionType())
+                .toList();
+    }
+
+    private List<SkillDefinition> currentRegionSkills() {
+        RegionDefinition region = regionService.getCurrentRegion(player);
+        Set<String> regionSkillIds = new HashSet<>(region.skillIds());
+        return context.getSkillRegistry().getAll().stream()
+                .filter(skill -> !skill.isRegionRestricted() || regionSkillIds.contains(skill.id()))
                 .toList();
     }
 
@@ -796,6 +885,7 @@ public final class AppController {
                     + enemy.getCurrentHp() + " / " + enemy.getDefinition().maxHp());
             enemyHpBar.setProgress((double) enemy.getCurrentHp() / enemy.getDefinition().maxHp());
             combatProgressLabel.setText("生命條：" + enemy.getCurrentHp() + " / " + enemy.getDefinition().maxHp());
+            combatHintLabel.setText(combatHintText(enemy.getDefinition()));
             combatToggleButton.setText("Ⅱ");
             combatToggleButton.setDisable(false);
         } else {
@@ -805,9 +895,27 @@ public final class AppController {
             combatProgressLabel.setText(selectedEnemy == null
                     ? "生命條：目前無敵人"
                     : "生命條：0 / " + selectedEnemy.maxHp());
+            combatHintLabel.setText(selectedEnemy == null
+                    ? "目前區域沒有可挑戰的敵人。"
+                    : combatHintText(selectedEnemy));
             combatToggleButton.setText("⚔");
             combatToggleButton.setDisable(selectedEnemy == null);
         }
+    }
+
+    private String combatHintText(EnemyDefinition enemy) {
+        int playerDamage = Math.max(1, player.getAttackPower() - enemy.defense());
+        int enemyDamage = Math.max(1, enemy.attack() - player.getDefense());
+        return "玩家傷害：攻擊 " + player.getAttackPower() + " - 敵方防禦 " + enemy.defense()
+                + " = 每回合 " + playerDamage
+                + "\n敵方傷害：敵方攻擊 " + enemy.attack() + " - 玩家防禦 " + player.getDefense()
+                + " = 每回合 " + enemyDamage
+                + "\n敵人屬性：" + enemy.name()
+                + " / HP " + enemy.maxHp()
+                + " / 攻擊 " + enemy.attack()
+                + " / 防禦 " + enemy.defense()
+                + " / 勝利獎勵 EXP " + enemy.expReward()
+                + "、Gold " + enemy.goldReward();
     }
 
     private void refreshInventory() {
@@ -839,20 +947,59 @@ public final class AppController {
     }
 
     private void refreshShop() {
-        ShopEntry selectedEntry = shopListView.getSelectionModel().getSelectedItem();
-        String selectedEntryId = selectedEntry == null ? "" : selectedEntry.id();
-        shopRows.setAll(shopService.getAvailableEntries(context));
+        ShopRow selectedRow = shopListView.getSelectionModel().getSelectedItem();
+        String selectedRowId = selectedRow == null ? "" : selectedRow.id();
+        if (currentShopMode() == ShopMode.BUY) {
+            shopRows.setAll(shopService.getAvailableEntries(context).stream()
+                    .map(entry -> ShopRow.forBuy(entry, itemLookup.get(entry.itemId())))
+                    .toList());
+        } else {
+            shopRows.setAll(inventoryService.getInventory(player).stream()
+                    .sorted(Comparator
+                            .comparingInt((InventoryStack stack) -> stack.getItem().type().ordinal())
+                            .thenComparing(stack -> stack.getItem().name()))
+                    .map(ShopRow::forSell)
+                    .toList());
+        }
         shopRows.stream()
-                .filter(entry -> entry.id().equals(selectedEntryId))
+                .filter(row -> row.id().equals(selectedRowId))
                 .findFirst()
                 .ifPresentOrElse(
-                        entry -> shopListView.getSelectionModel().select(entry),
+                        row -> shopListView.getSelectionModel().select(row),
                         () -> {
                             if (!shopRows.isEmpty()) {
                                 shopListView.getSelectionModel().selectFirst();
+                            } else {
+                                shopListView.getSelectionModel().clearSelection();
                             }
                         }
                 );
+        refreshShopControls();
+    }
+
+    private ShopMode currentShopMode() {
+        ShopMode mode = shopModeComboBox.getSelectionModel().getSelectedItem();
+        return mode == null ? ShopMode.BUY : mode;
+    }
+
+    private void refreshShopControls() {
+        ShopMode mode = currentShopMode();
+        ShopRow row = shopListView.getSelectionModel().getSelectedItem();
+        boolean sellMode = mode == ShopMode.SELL;
+        setVisibleManaged(shopQuantitySpinner, sellMode);
+        shopActionButton.setText(sellMode ? "出售選中物品" : "購買選中商品");
+        shopDescriptionLabel.setText(sellMode
+                ? "選擇背包物品與數量，依物品價值換成 Gold"
+                : "目前區域可購買商品");
+        if (sellMode && row != null && row.inventoryStack() != null) {
+            int maxQuantity = Math.max(1, row.inventoryStack().getQuantity());
+            int currentQuantity = shopQuantitySpinner.getValue() == null ? 1 : shopQuantitySpinner.getValue();
+            int selectedQuantity = Math.max(1, Math.min(currentQuantity, maxQuantity));
+            shopQuantitySpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, maxQuantity, selectedQuantity));
+        } else {
+            shopQuantitySpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 1, 1));
+        }
+        shopActionButton.setDisable(row == null);
     }
 
     private void refreshQuests() {
@@ -887,9 +1034,9 @@ public final class AppController {
         switch (selectedSideEntry.kind()) {
             case ATTACK -> showStatEvent(
                     "攻擊力 " + player.getAttackPower(),
-                    "基礎攻擊會隨玩家等級提升，裝備武器與工具可以再增加攻擊。",
+                    "基礎攻擊會隨玩家等級提升，裝備武器可以再增加攻擊。",
                     "目前等級：Lv. " + player.getLevel(),
-                    equipmentBonusText("攻擊", EquipmentSlot.WEAPON, EquipmentSlot.TOOL)
+                    equipmentBonusText("攻擊", EquipmentSlot.WEAPON)
             );
             case HEALTH -> showStatEvent(
                     "體力 " + player.getCurrentHp() + " / " + player.getMaxHp(),
@@ -940,16 +1087,19 @@ public final class AppController {
         Optional<SkillDefinition> activeSkill = gatheringService.getActiveSkill();
         activeSkillLabel.setText(activeSkill.map(skill -> "進行中：" + skill.name()).orElse("休息中"));
         if (activeSkill.isPresent()) {
-            startSkillProgressLoop(activeSkill.get());
-            skillTimeLabel.setText("時間條：約 " + activeSkill.get().durationTicks() + " 秒 / 循環中");
+            int requiredTicks = gatheringService.getRequiredTicks(context);
+            int progressTicks = Math.min(gatheringService.getProgressTicks(), requiredTicks);
+            skillProgressBar.setProgress(gatheringService.getProgressRatio(context));
+            skillTimeLabel.setText("時間條：" + progressTicks + " / " + requiredTicks
+                    + " 秒 / 循環中（" + skillSpeedText(activeSkill.get()) + "）");
             skillToggleButton.setText("Ⅱ");
             skillToggleButton.setDisable(false);
         } else {
-            stopSkillProgressAnimation();
             skillProgressBar.setProgress(0);
+            int requiredTicks = selectedSkill == null ? 0 : requiredTicks(selectedSkill);
             skillTimeLabel.setText(selectedSkill == null
                     ? "時間條：目前無事件"
-                    : "時間條：約 " + selectedSkill.durationTicks() + " 秒 / 循環");
+                    : "時間條：約 " + requiredTicks + " 秒 / 循環（" + skillSpeedText(selectedSkill) + "）");
             skillToggleButton.setText("▶");
             skillToggleButton.setDisable(selectedSkill == null || !hasRequiredItems(selectedSkill));
         }
@@ -969,6 +1119,26 @@ public final class AppController {
             return rewardText;
         }
         return rewardText + " / 消耗：" + requiredItemsText(skill);
+    }
+
+    private int requiredTicks(SkillDefinition skill) {
+        return SkillSpeedCalculator.requiredTicks(player, skill, itemLookup::get);
+    }
+
+    private String skillSpeedText(SkillDefinition skill) {
+        double levelSpeed = SkillSpeedCalculator.levelSpeedPercent(player, skill);
+        int toolSpeed = SkillSpeedCalculator.toolSpeedPercent(player, skill, itemLookup::get);
+        double totalSpeed = SkillSpeedCalculator.totalSpeedPercent(player, skill, itemLookup::get);
+        return "基礎 " + skill.durationTicks()
+                + " 秒 → " + requiredTicks(skill)
+                + " 秒，加速 " + formatPercent(totalSpeed)
+                + "%（Lv " + formatPercent(levelSpeed) + "% + 工具 " + toolSpeed + "%）";
+    }
+
+    private String formatPercent(double value) {
+        return Math.rint(value) == value
+                ? Integer.toString((int) value)
+                : String.format(java.util.Locale.ROOT, "%.1f", value);
     }
 
     private boolean hasRequiredItems(SkillDefinition skill) {
@@ -1001,10 +1171,7 @@ public final class AppController {
                 + " / 總值 " + selectedInventoryStack.getTotalValue() + " G");
         itemDetailDescriptionLabel.setText(item.description().isBlank() ? "沒有額外描述。" : item.description());
         if (item.isEquipment()) {
-            itemDetailStatsLabel.setText(slotLabel(item.slot())
-                    + "  攻擊 +" + item.attackBonus()
-                    + " / 防禦 +" + item.defenseBonus()
-                    + " / 體力 +" + item.hpBonus());
+            itemDetailStatsLabel.setText(equipmentStatsText(item));
             inventoryEquipButton.setText("裝備選中物品");
             inventoryEquipButton.setDisable(false);
         } else if (item.isFood()) {
@@ -1080,31 +1247,6 @@ public final class AppController {
         }
     }
 
-    private void startSkillProgressLoop(SkillDefinition skill) {
-        if (skill.id().equals(animatedSkillId)
-                && skillProgressAnimation != null
-                && skillProgressAnimation.getStatus() == Animation.Status.RUNNING) {
-            return;
-        }
-        stopSkillProgressAnimation();
-        animatedSkillId = skill.id();
-        skillProgressBar.setProgress(0);
-        skillProgressAnimation = new Timeline(
-                new KeyFrame(Duration.ZERO, new KeyValue(skillProgressBar.progressProperty(), 0, Interpolator.LINEAR)),
-                new KeyFrame(Duration.seconds(skill.durationTicks()), new KeyValue(skillProgressBar.progressProperty(), 1, Interpolator.LINEAR))
-        );
-        skillProgressAnimation.setCycleCount(Animation.INDEFINITE);
-        skillProgressAnimation.playFromStart();
-    }
-
-    private void stopSkillProgressAnimation() {
-        if (skillProgressAnimation != null) {
-            skillProgressAnimation.stop();
-            skillProgressAnimation = null;
-        }
-        animatedSkillId = "";
-    }
-
     private String sideEntryText(SideEntry entry) {
         if (player == null) {
             return entry.icon() + " " + entry.title();
@@ -1172,10 +1314,12 @@ public final class AppController {
         }
     }
 
-    private String equipmentBonusText(String label, EquipmentSlot firstSlot, EquipmentSlot secondSlot) {
-        return label + "來源："
-                + slotItemName(firstSlot) + " / "
-                + slotItemName(secondSlot);
+    private String equipmentBonusText(String label, EquipmentSlot... slots) {
+        List<String> names = new ArrayList<>();
+        for (EquipmentSlot slot : slots) {
+            names.add(slotItemName(slot));
+        }
+        return label + "來源：" + String.join(" / ", names);
     }
 
     private String slotItemName(EquipmentSlot slot) {
@@ -1187,9 +1331,23 @@ public final class AppController {
     private int equipmentHpBonus() {
         return player.getEquipment().values().stream()
                 .map(itemLookup::get)
-                .filter(item -> item != null)
+                .filter(item -> item != null && item.slot() != EquipmentSlot.TOOL)
                 .mapToInt(ItemDefinition::hpBonus)
                 .sum();
+    }
+
+    private String equipmentStatsText(ItemDefinition item) {
+        if (item.slot() == EquipmentSlot.TOOL) {
+            if (item.speedBonusPercent() <= 0) {
+                return slotLabel(item.slot()) + "  無速度加成";
+            }
+            String target = item.speedActionType() == null ? "所有技能" : actionTypeLabel(item.speedActionType());
+            return slotLabel(item.slot()) + "  " + target + "速度 +" + item.speedBonusPercent() + "%";
+        }
+        return slotLabel(item.slot())
+                + "  攻擊 +" + item.attackBonus()
+                + " / 防禦 +" + item.defenseBonus()
+                + " / 體力 +" + item.hpBonus();
     }
 
     private String actionTypeLabel(ActionType actionType) {
@@ -1253,6 +1411,69 @@ public final class AppController {
         JOURNAL,
         MAP,
         SHOP
+    }
+
+    private enum ShopMode {
+        BUY("購買"),
+        SELL("出售");
+
+        private final String label;
+
+        ShopMode(String label) {
+            this.label = label;
+        }
+
+        private String label() {
+            return label;
+        }
+    }
+
+    private record ShopRow(
+            String id,
+            ShopEntry shopEntry,
+            InventoryStack inventoryStack,
+            String displayText
+    ) {
+        private static ShopRow forBuy(ShopEntry entry, ItemDefinition item) {
+            String itemName = item == null ? entry.itemId() : item.name();
+            String itemMeta = item == null ? "" : rarityDisplay(item) + " / " + itemTypeDisplay(item);
+            return new ShopRow(
+                    "buy:" + entry.id(),
+                    entry,
+                    null,
+                    itemName + "  " + entry.price() + " G\n" + itemMeta
+            );
+        }
+
+        private static ShopRow forSell(InventoryStack stack) {
+            ItemDefinition item = stack.getItem();
+            int totalValue = item.value() * stack.getQuantity();
+            return new ShopRow(
+                    "sell:" + item.id(),
+                    null,
+                    stack,
+                    item.name() + " x" + stack.getQuantity() + "  單價 " + item.value() + " G"
+                            + "\n" + rarityDisplay(item) + " / " + itemTypeDisplay(item) + " / 全部出售 " + totalValue + " G"
+            );
+        }
+
+        private static String itemTypeDisplay(ItemDefinition item) {
+            return switch (item.type()) {
+                case RESOURCE -> "資源";
+                case CONSUMABLE -> "食品";
+                case EQUIPMENT -> "裝備";
+                case QUEST -> "任務";
+            };
+        }
+
+        private static String rarityDisplay(ItemDefinition item) {
+            return switch (item.rarity()) {
+                case COMMON -> "普通";
+                case UNCOMMON -> "精良";
+                case RARE -> "稀有";
+                case EPIC -> "史詩";
+            };
+        }
     }
 
     private enum InventoryFilter {

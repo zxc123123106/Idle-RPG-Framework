@@ -11,7 +11,8 @@ public record SkillDefinition(
         int rewardQuantity,
         int expReward,
         String consumeItemId,
-        int consumeQuantity
+        int consumeQuantity,
+        Boolean regionRestricted
 ) implements Identifiable {
     public SkillDefinition(
             String id,
@@ -22,7 +23,21 @@ public record SkillDefinition(
             int rewardQuantity,
             int expReward
     ) {
-        this(id, name, actionType, durationTicks, rewardItemId, rewardQuantity, expReward, "", 0);
+        this(id, name, actionType, durationTicks, rewardItemId, rewardQuantity, expReward, "", 0, true);
+    }
+
+    public SkillDefinition(
+            String id,
+            String name,
+            ActionType actionType,
+            int durationTicks,
+            String rewardItemId,
+            int rewardQuantity,
+            int expReward,
+            String consumeItemId,
+            int consumeQuantity
+    ) {
+        this(id, name, actionType, durationTicks, rewardItemId, rewardQuantity, expReward, consumeItemId, consumeQuantity, true);
     }
 
     public SkillDefinition {
@@ -56,5 +71,10 @@ public record SkillDefinition(
         } else if (consumeQuantity <= 0) {
             throw new IllegalArgumentException("Consume quantity must be positive when consume item is set.");
         }
+        regionRestricted = regionRestricted == null ? Boolean.TRUE : regionRestricted;
+    }
+
+    public boolean isRegionRestricted() {
+        return Boolean.TRUE.equals(regionRestricted);
     }
 }

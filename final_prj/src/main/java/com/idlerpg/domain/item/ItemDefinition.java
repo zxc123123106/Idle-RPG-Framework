@@ -1,6 +1,7 @@
 package com.idlerpg.domain.item;
 
 import com.idlerpg.domain.common.Identifiable;
+import com.idlerpg.domain.skill.ActionType;
 
 public record ItemDefinition(
         String id,
@@ -14,10 +15,12 @@ public record ItemDefinition(
         int attackBonus,
         int defenseBonus,
         int hpBonus,
-        int healAmount
+        int healAmount,
+        ActionType speedActionType,
+        int speedBonusPercent
 ) implements Identifiable {
     public ItemDefinition(String id, String name, ItemType type, int value) {
-        this(id, name, type, value, "", "◆", ItemRarity.COMMON, null, 0, 0, 0, 0);
+        this(id, name, type, value, "", "◆", ItemRarity.COMMON, null, 0, 0, 0, 0, null, 0);
     }
 
     public ItemDefinition(
@@ -33,7 +36,24 @@ public record ItemDefinition(
             int defenseBonus,
             int hpBonus
     ) {
-        this(id, name, type, value, description, icon, rarity, slot, attackBonus, defenseBonus, hpBonus, 0);
+        this(id, name, type, value, description, icon, rarity, slot, attackBonus, defenseBonus, hpBonus, 0, null, 0);
+    }
+
+    public ItemDefinition(
+            String id,
+            String name,
+            ItemType type,
+            int value,
+            String description,
+            String icon,
+            ItemRarity rarity,
+            EquipmentSlot slot,
+            int attackBonus,
+            int defenseBonus,
+            int hpBonus,
+            int healAmount
+    ) {
+        this(id, name, type, value, description, icon, rarity, slot, attackBonus, defenseBonus, hpBonus, healAmount, null, 0);
     }
 
     public ItemDefinition {
@@ -60,6 +80,12 @@ public record ItemDefinition(
         }
         if (healAmount < 0) {
             throw new IllegalArgumentException("Heal amount cannot be negative.");
+        }
+        if (speedBonusPercent < 0) {
+            throw new IllegalArgumentException("Speed bonus cannot be negative.");
+        }
+        if (slot != EquipmentSlot.TOOL && speedBonusPercent > 0) {
+            throw new IllegalArgumentException("Only tool equipment can define speed bonuses.");
         }
     }
 
