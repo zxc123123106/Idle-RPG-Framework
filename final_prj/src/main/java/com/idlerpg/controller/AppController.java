@@ -117,11 +117,13 @@ public final class AppController {
     @FXML private ProgressBar skillProgressBar;
     @FXML private Label skillTimeLabel;
     @FXML private Label skillRewardLabel;
+    @FXML private Button skillToggleButton;
 
     @FXML private ComboBox<EnemyDefinition> enemyComboBox;
     @FXML private Label combatStatusLabel;
     @FXML private ProgressBar enemyHpBar;
     @FXML private Label combatProgressLabel;
+    @FXML private Button combatToggleButton;
 
     @FXML private ListView<EquipmentSlot> equipmentListView;
     @FXML private Label objectiveLabel;
@@ -215,7 +217,15 @@ public final class AppController {
     }
 
     @FXML
-    private void onStartAction() {
+    private void onToggleAction() {
+        if (gatheringService.getActiveSkill().isPresent()) {
+            stopAction();
+        } else {
+            startAction();
+        }
+    }
+
+    private void startAction() {
         SkillDefinition selectedSkill = skillComboBox.getSelectionModel().getSelectedItem();
         if (selectedSkill == null) {
             notifyPlayer("目前區域沒有可用的採集");
@@ -227,8 +237,7 @@ public final class AppController {
         refreshAll();
     }
 
-    @FXML
-    private void onStopAction() {
+    private void stopAction() {
         new StopActionCommand(gatheringService, player).execute();
         stopSkillProgressAnimation();
         notifyPlayer("已停止目前採集");
@@ -237,7 +246,15 @@ public final class AppController {
     }
 
     @FXML
-    private void onStartCombat() {
+    private void onToggleCombat() {
+        if (combatService.getActiveEnemy().isPresent()) {
+            stopCombat();
+        } else {
+            startCombat();
+        }
+    }
+
+    private void startCombat() {
         EnemyDefinition selectedEnemy = enemyComboBox.getSelectionModel().getSelectedItem();
         if (selectedEnemy == null) {
             notifyPlayer("目前區域沒有可挑戰的敵人");
@@ -248,8 +265,7 @@ public final class AppController {
         refreshAll();
     }
 
-    @FXML
-    private void onStopCombat() {
+    private void stopCombat() {
         new StopCombatCommand(combatService).execute();
         refreshAll();
         saveGame("已自動存檔");
@@ -706,6 +722,8 @@ public final class AppController {
                     + enemy.getCurrentHp() + " / " + enemy.getDefinition().maxHp());
             enemyHpBar.setProgress((double) enemy.getCurrentHp() / enemy.getDefinition().maxHp());
             combatProgressLabel.setText("生命條：" + enemy.getCurrentHp() + " / " + enemy.getDefinition().maxHp());
+            combatToggleButton.setText("Ⅱ");
+            combatToggleButton.setDisable(false);
         } else {
             combatStatusLabel.setText("目前沒有戰鬥");
             enemyHpBar.setProgress(0);
@@ -713,6 +731,8 @@ public final class AppController {
             combatProgressLabel.setText(selectedEnemy == null
                     ? "生命條：目前無敵人"
                     : "生命條：0 / " + selectedEnemy.maxHp());
+            combatToggleButton.setText("⚔");
+            combatToggleButton.setDisable(selectedEnemy == null);
         }
     }
 
@@ -840,12 +860,16 @@ public final class AppController {
         if (activeSkill.isPresent()) {
             startSkillProgressLoop(activeSkill.get());
             skillTimeLabel.setText("時間條：約 " + activeSkill.get().durationTicks() + " 秒 / 循環中");
+            skillToggleButton.setText("Ⅱ");
+            skillToggleButton.setDisable(false);
         } else {
             stopSkillProgressAnimation();
             skillProgressBar.setProgress(0);
             skillTimeLabel.setText(selectedSkill == null
                     ? "時間條：目前無事件"
                     : "時間條：約 " + selectedSkill.durationTicks() + " 秒 / 循環");
+            skillToggleButton.setText("▶");
+            skillToggleButton.setDisable(selectedSkill == null);
         }
 
         if (selectedSkill == null) {

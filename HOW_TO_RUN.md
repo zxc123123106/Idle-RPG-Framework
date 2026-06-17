@@ -122,49 +122,255 @@ com.idlerpg.Launcher
 
 本專題採資料驅動設計，新增或調整內容主要改 JSON。
 
-新增道具：
+修改 JSON 時請注意：
+
+- 每個物件的 `id` 必須唯一，建議使用英文小寫與底線。
+- JSON 陣列中每個物件之間要用逗號分隔。
+- 最後一個物件後面不要多加逗號。
+- 修改 JSON 後重新執行程式即可載入新資料。
+
+### 4.1 新增 Item / 道具
+
+修改：
 
 ```text
 final_prj/src/main/resources/data/items.json
 ```
 
-新增技能：
+一般資源範例：
+
+```json
+{
+  "id": "silver_ore",
+  "name": "銀礦石",
+  "type": "RESOURCE",
+  "value": 25,
+  "description": "帶有微光的銀色礦石，可販售或作為進階材料。",
+  "icon": "◆",
+  "rarity": "UNCOMMON"
+}
+```
+
+裝備範例：
+
+```json
+{
+  "id": "silver_sword",
+  "name": "銀劍",
+  "type": "EQUIPMENT",
+  "value": 240,
+  "description": "比鐵劍更鋒利的武器。",
+  "icon": "⚔",
+  "rarity": "RARE",
+  "slot": "WEAPON",
+  "attackBonus": 14,
+  "defenseBonus": 0,
+  "hpBonus": 0
+}
+```
+
+可用欄位：
+
+- `type`：`RESOURCE`、`CONSUMABLE`、`EQUIPMENT`、`QUEST`
+- `rarity`：`COMMON`、`UNCOMMON`、`RARE`、`EPIC`
+- `slot`：只有裝備需要，可用 `WEAPON`、`ARMOR`、`TOOL`、`TRINKET`
+
+### 4.2 新增 Event / 採集事件
+
+目前可自主新增的 event 是採集事件，例如採礦或釣魚。
+
+修改：
 
 ```text
 final_prj/src/main/resources/data/skills.json
 ```
 
-新增敵人：
+範例：
+
+```json
+{
+  "id": "mine_silver",
+  "name": "開採銀礦",
+  "actionType": "MINING",
+  "durationTicks": 6,
+  "rewardItemId": "silver_ore",
+  "rewardQuantity": 1,
+  "expReward": 35
+}
+```
+
+欄位說明：
+
+- `actionType`：目前支援 `MINING`、`FISHING`
+- `durationTicks`：完成一次事件需要幾秒
+- `rewardItemId`：必須對應 `items.json` 中存在的 `id`
+- `rewardQuantity`：每次完成給幾個道具
+- `expReward`：每次完成給多少玩家 EXP
+
+新增後還要到 `regions.json` 把 event 掛到地圖，例如：
+
+```json
+"skillIds": ["mine_copper", "fish_river", "mine_silver"]
+```
+
+### 4.3 新增 Enemy / 敵人
+
+修改：
 
 ```text
 final_prj/src/main/resources/data/enemies.json
 ```
 
-新增區域：
+範例：
+
+```json
+{
+  "id": "cave_bat",
+  "name": "洞穴蝙蝠",
+  "maxHp": 55,
+  "attack": 6,
+  "expReward": 40,
+  "goldReward": 12
+}
+```
+
+新增後還要到 `regions.json` 把敵人掛到地圖，例如：
+
+```json
+"enemyIds": ["training_slime", "cave_bat"]
+```
+
+### 4.4 新增 Region / 地圖
+
+修改：
 
 ```text
 final_prj/src/main/resources/data/regions.json
 ```
 
-新增任務：
+範例：
+
+```json
+{
+  "id": "silver_cave",
+  "name": "銀光洞窟",
+  "description": "礦壁閃著銀色光芒的洞窟，適合進階採礦。",
+  "icon": "◇",
+  "requiredLevel": 3,
+  "requiredQuestId": "first_ore",
+  "skillIds": ["mine_silver"],
+  "enemyIds": ["cave_bat"],
+  "shopItemIds": ["silver_sword"],
+  "questIds": ["silver_supply"]
+}
+```
+
+欄位說明：
+
+- `requiredLevel`：玩家達到此等級才可解鎖
+- `requiredQuestId`：可省略；若填寫，代表要先完成該任務
+- `skillIds`：此地圖可使用的採集事件 id
+- `enemyIds`：此地圖可挑戰的敵人 id
+- `shopItemIds`：此地圖商店可販售的 item id
+- `questIds`：此地圖會顯示的任務 id
+
+### 4.5 新增 Quest / 任務
+
+修改：
 
 ```text
 final_prj/src/main/resources/data/quests.json
 ```
 
-新增商店商品：
+採集任務範例：
+
+```json
+{
+  "id": "silver_supply",
+  "title": "銀礦補給",
+  "description": "取得 5 個銀礦石，交給城鎮工匠。",
+  "type": "GATHER_ITEM",
+  "targetId": "silver_ore",
+  "requiredCount": 5,
+  "rewardExp": 90,
+  "rewardGold": 70,
+  "rewardItemId": "silver_sword",
+  "rewardQuantity": 1
+}
+```
+
+戰鬥任務範例：
+
+```json
+{
+  "id": "clear_bats",
+  "title": "清理洞窟",
+  "description": "擊敗 3 隻洞穴蝙蝠，讓礦工能安全進入。",
+  "type": "DEFEAT_ENEMY",
+  "targetId": "cave_bat",
+  "requiredCount": 3,
+  "rewardExp": 80,
+  "rewardGold": 60
+}
+```
+
+任務可用類型：
+
+- `GATHER_ITEM`：收集指定 item
+- `DEFEAT_ENEMY`：擊敗指定 enemy
+- `OBTAIN_ITEM`：取得指定 item
+- `REACH_LEVEL`：達到指定等級
+
+如果任務完成後要解鎖地圖，可以加：
+
+```json
+"unlockRegionId": "silver_cave"
+```
+
+### 4.6 新增 Shop / 商店商品
+
+修改：
 
 ```text
 final_prj/src/main/resources/data/shop.json
 ```
 
+範例：
+
+```json
+{
+  "id": "buy_silver_sword",
+  "itemId": "silver_sword",
+  "price": 220,
+  "requiredRegionId": "silver_cave"
+}
+```
+
 注意：
 
-- `skills.json` 的 `rewardItemId` 必須對應 `items.json` 中存在的 `id`。
-- `regions.json` 的 `skillIds`、`enemyIds`、`questIds` 必須對應既有資料 id。
+- `itemId` 必須對應 `items.json`。
+- `requiredRegionId` 代表商品只會在該地圖商店出現。
+- 如果要讓商品出現在地圖商店，該 item id 也要加入 `regions.json` 的 `shopItemIds`。
+
+### 4.7 新增一套完整內容的建議順序
+
+如果你想新增一張地圖與相關內容，建議順序如下：
+
+1. 在 `items.json` 新增獎勵道具或裝備。
+2. 在 `skills.json` 新增採集 event，並讓 `rewardItemId` 指向新 item。
+3. 在 `enemies.json` 新增敵人。
+4. 在 `quests.json` 新增任務，任務的 `targetId` 指向 item 或 enemy。
+5. 在 `shop.json` 新增可購買商品。
+6. 在 `regions.json` 新增地圖，並填入 `skillIds`、`enemyIds`、`questIds`、`shopItemIds`。
+7. 重新執行遊戲。
+
+常見錯誤：
+
+- `skills.json` 的 `rewardItemId` 沒有對應到 `items.json`。
+- `regions.json` 的 `skillIds`、`enemyIds`、`questIds` 沒有對應到既有資料 id。
 - `shop.json` 的 `itemId` 必須對應 `items.json`。
 - `durationTicks` 代表完成一次採集需要幾秒。
-- 修改 JSON 後重新執行程式即可載入新資料。
+- 目前 Java 程式的 `ActionType` 只支援 `MINING`、`FISHING`；如果要新增伐木、料理、鍛造等全新類型，需要再修改 Java enum 與 UI 顯示。
 
 ## 5. 自備素材
 

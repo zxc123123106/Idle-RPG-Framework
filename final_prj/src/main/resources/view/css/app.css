@@ -264,6 +264,16 @@
     -fx-background-color: #4a4a4a;
 }
 
+.primary-toggle-button {
+    -fx-min-width: 78px;
+    -fx-min-height: 78px;
+    -fx-pref-width: 78px;
+    -fx-pref-height: 78px;
+    -fx-font-size: 30px;
+    -fx-background-color: #4a4a4a;
+    -fx-background-radius: 13px;
+}
+
 .wide-action-button {
     -fx-min-width: 210px;
 }
@@ -275,11 +285,26 @@
 }
 
 .progress-bar > .track {
-    -fx-background-color: #262626;
+    -fx-background-color: #303030;
     -fx-background-radius: 7px;
+    -fx-border-color: #4a4a4a;
+    -fx-border-width: 1px;
+    -fx-border-radius: 7px;
 }
 
-.combat-page .progress-bar > .bar {
+.time-progress-bar,
+.combat-progress-bar {
+    -fx-min-height: 24px;
+    -fx-pref-height: 24px;
+    -fx-max-height: 24px;
+}
+
+.time-progress-bar > .bar,
+.combat-progress-bar > .bar {
+    -fx-padding: 10px;
+}
+
+.combat-progress-bar > .bar {
     -fx-background-color: #f15a4a;
 }
 
