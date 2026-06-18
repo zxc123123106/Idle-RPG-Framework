@@ -448,61 +448,36 @@ Tests: 23 / 23 PASS
 
 本專題使用 OpenAI Codex 作為程式開發輔助工具。AI 的使用範圍包含：
 
-- 閱讀 README 並整理需求。
-- 分析 Maven 與 JavaFX 專案結構。
-- 產生 MVC、Event Bus、Registry、Factory、Strategy、Command 與 Service Layer 程式。
-- 撰寫 FXML、CSS 與 Controller 畫面邏輯。
-- 撰寫 JSON 資料模型、遊戲內容與擴充範例。
+- 優化並整合 MVC、Event Bus、Registry、Factory、Strategy、Command 與 Service Layer 程式。
+- 優化 FXML、CSS 與 Controller 畫面邏輯。
+- 根據我們自定義的JSON格式，對遊戲進行擴充
 - 協助定位 JavaFX 啟動、畫面裁切、按鈕操作與地圖切換問題。
 - 撰寫與執行單元測試。
-- 產生 UML、操作文件、書面報告與口頭報告草稿。
+- 產生mermaid語法、操作文件。
 
-AI 主要負責提供實作草案、修改程式與自動驗證；功能是否符合玩家體驗，仍由組員透過實際執行與畫面比較決定。
+AI 主要負責依照我們自定義的規則和實作出的基礎框架，提供優化並實作需求、自動驗證；功能是否符合玩家體驗，仍由組員透過實際執行與畫面比較決定。
 
-## 2. 概述提問的內容，以及 AI 的回答
-
-| 提問或指令主題 | AI 回答與實際處理 |
-|---|---|
-| 請閱讀 README，並確認 IntelliJ IDEA 是否影響開發 | AI 分析規格與 Maven 結構，說明 IntelliJ 可直接匯入 `pom.xml` |
-| 檢查 `final_prj` 並實作專題 | AI 建立 domain、core、service、factory、command、controller、FXML、CSS、JSON 與測試結構 |
-| JavaFX runtime components missing | AI 判斷為啟動方式問題，增加一般 Java `Launcher` 作為正確入口 |
-| JavaFX native access warning | AI 說明這是 Java 26 警告，並提供 `--enable-native-access=ALL-UNNAMED` |
-| 將 MVP 改成深色系玩家畫面 | AI 移除工程用 Event Log，改為三區畫面、Toast、任務、裝備、地圖與商店 |
-| 畫面被裁切，中央功能過於擁擠 | AI 將中央改為 StackPane 單頁切換，各頁放入 ScrollPane，底部導覽固定 |
-| 採集與戰鬥開始、停止按鈕重複 | AI 將按鈕整合為 `▶` 與 `Ⅱ` 之間切換 |
-| 時間條不平滑 | AI 保留 tick 結算，加入 JavaFX Timeline 提供畫面補間 |
-| 如何新增 event、item 與地圖 | AI 說明現有類型可透過 JSON 新增，全新行為類型則需 Strategy、Factory、enum 與 UI 支援 |
-| Cooking 需要消耗 item | AI 擴充 SkillDefinition 的消耗欄位，並在 GatheringService 結算前檢查與扣除材料 |
-| 分析專案並修正需留意處 | AI 比對文件、程式、JSON、UML 與測試，再執行 Java 26 編譯與回歸測試 |
-| 產生書面報告與講稿 | AI 根據實際程式產生 `REPORT.md`、`REPORT2.md` 與 `SPEECH.md`，並同步實際測試數量 |
-
-AI 並非只回答文字建議，而是在共用 workspace 中閱讀檔案、修改程式、編譯與執行測試。組員再根據實際畫面給予下一輪具體修正指令。
-
-## 3. 你手動（沒有用 AI）的部分
+## 2. 你手動（沒有用 AI）的部分
 
 本專題中可明確區分為組員手動完成的內容如下：
 
 1. **題目與規格決策**：確定以 Idle RPG 為主題，將軟體架構、MVC、Event Bus 與資料驅動設計列為專題重點。
-2. **開發環境操作**：在 IntelliJ IDEA 匯入 Maven 專案、選擇 JDK 26、建立 Run Configuration 與實際執行程式。
-3. **人工 UI 測試**：親自點擊採集、戰鬥、地圖、裝備與背包，觀察時間條、按鈕、地圖選擇與畫面裁切問題。
-4. **截圖與問題回報**：擷取實際畫面，指出黑色圓形遮擋、區塊無法捲動、時間條中斷與區域選擇回復等具體問題。
-5. **視覺參考與取捨**：提供原作戰鬥、裝備與釣魚畫面，決定深色系、左側事件列、中央單頁畫面、右側文字背包與底部全域導覽。
-6. **功能範圍決策**：審視 AI 實作結果，決定保留、修改或移除哪些功能，而不是無條件接受 AI 產出。
-7. **現場報告準備**：依自己對架構與程式的理解決定 Demo 順序，並在正式報告前親自演練。
+2. **規劃並實作基礎框架**：實作各個類別、策略與工廠的基礎框架。
+3. **制定JSON格式**：撰寫 JSON 資料模型、規格與遊戲內容，作為往後擴充遊戲的基礎。
+4. **人工 UI 測試**：親自點擊採集、戰鬥、地圖、裝備與背包，觀察時間條、按鈕、地圖選擇與畫面裁切問題。
+5. **功能範圍決策**：審視 AI 實作結果，決定保留、修改或移除哪些功能，而不是無條件接受 AI 產出。
 
-程式碼與文件雖由 AI 大量協助，但實際需求、畫面感受、問題發現、功能優先順序與最終驗收是組員手動完成。
+我們先實作遊戲的基礎框架，再由AI來加入大量的優化需求，最後完成遊戲的實際需求、畫面感受、問題發現、功能優先順序與最終驗收。
 
 ## 4. 心得
 
 ### 4.1 AI 的實用性
 
-AI 對本專題最有幫助的部分是快速建立架構、找出跨檔案關係、重複執行編譯與測試，以及將需求同步到程式、JSON、UML 與文件。
+AI 對本專題最有幫助的部分是快速審查架構、找出跨檔案關係、重複執行編譯與測試，以及將需求同步到程式、JSON、UML 與文件。
 
-像 Event Bus、Registry、Factory 與 Service Layer 這類需要較多類別配合的架構，AI 可以快速建立完整骨架。當我們提供明確截圖和問題時，AI 也能找到 FXML、CSS、Controller 或 Service 中對應的修改位置。
+像 Event Bus、Registry、Factory 與 Service Layer 這類需要較多類別配合的架構，AI 可以整合骨架。
 
 ### 4.2 AI 的限制
-
-AI 第一次交付的畫面不一定符合使用者心中的遊戲體驗。例如早期版本把多個功能同時放在中央，雖然功能存在，但不符合玩家操作邏輯。只有實際執行、截圖並提出具體要求後，才能逐步改善。
 
 AI 也可能：
 
