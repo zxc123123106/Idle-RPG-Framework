@@ -42,8 +42,6 @@ import com.idlerpg.service.combat.CombatService;
 import com.idlerpg.service.equipment.EquipmentService;
 import com.idlerpg.service.gathering.GatheringService;
 import com.idlerpg.service.inventory.InventoryService;
-import com.idlerpg.service.offline.OfflineProgressResult;
-import com.idlerpg.service.offline.OfflineProgressService;
 import com.idlerpg.service.progression.ProgressionService;
 import com.idlerpg.service.progression.SkillSpeedCalculator;
 import com.idlerpg.service.quest.QuestService;
@@ -76,7 +74,6 @@ import javafx.util.Duration;
 import javafx.util.StringConverter;
 
 import java.io.IOException;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumSet;
@@ -186,7 +183,6 @@ public final class AppController {
     private MainViewMode currentViewMode = MainViewMode.EVENT;
     private SideEntry selectedSideEntry;
     private InventoryStack selectedInventoryStack;
-    private String startupNotice = "歡迎回到冒險旅程";
 
     @FXML
     private void initialize() {
@@ -260,13 +256,13 @@ public final class AppController {
             notifyPlayer("材料不足：" + requiredItemsText(selectedSkill));
             return;
         }
-        new StartActionCommand(gatheringService, selectedSkill, player).execute();
+        new StartActionCommand(gatheringService, selectedSkill).execute();
         notifyPlayer("開始：" + selectedSkill.name());
         refreshAll();
     }
 
     private void stopAction() {
-        new StopActionCommand(gatheringService, player).execute();
+        new StopActionCommand(gatheringService).execute();
         notifyPlayer("已停止目前採集");
         refreshAll();
         saveGame("已自動存檔");
@@ -479,7 +475,6 @@ public final class AppController {
 
         restoreSaveIfPresent(itemRegistry);
         ensureValidCurrentRegion();
-        applyOfflineProgressAndResume();
         regionService.unlockEligibleRegions(player);
         subscribeToEvents(eventBus);
         engine = new GameEngine(context);
@@ -487,7 +482,7 @@ public final class AppController {
         engine.register(combatService);
         engine.start();
         refreshAll();
-        notifyPlayer(startupNotice);
+        notifyPlayer("歡迎回到冒險旅程");
     }
 
     private void restoreSaveIfPresent(ItemRegistry itemRegistry) {
@@ -504,49 +499,6 @@ public final class AppController {
             saveStatusLabel.setText("新遊戲");
             addReward("舊存檔無法讀取，已建立新旅程");
         }
-    }
-
-    private void applyOfflineProgressAndResume() {
-        String savedSkillId = player.getActiveSkillId();
-        if (savedSkillId.isBlank()) {
-            return;
-        }
-        SkillDefinition savedSkill = context.getSkillRegistry().get(savedSkillId).orElse(null);
-        if (savedSkill == null || !isSkillAvailableInCurrentRegion(savedSkill)) {
-            player.setActiveSkillId("");
-            startupNotice = "原本進行的活動已不存在或不屬於目前區域";
-            return;
-        }
-
-        OfflineProgressResult result = new OfflineProgressService()
-                .applyOfflineProgress(context, Instant.now().getEpochSecond());
-        if (result.hasRewards()) {
-            ItemDefinition reward = itemLookup.get(result.itemId());
-            String rewardName = reward == null ? result.itemId() : reward.name();
-            startupNotice = "離線收益：" + rewardName + " x" + result.quantity()
-                    + " / EXP +" + result.experience();
-            if (result.stoppedForMissingMaterials()) {
-                startupNotice += "；材料已耗盡，活動停止";
-            }
-        } else if (result.stoppedForMissingMaterials()) {
-            startupNotice = "離線期間材料耗盡，活動已停止";
-        }
-
-        if (player.getActiveSkillId().isBlank()) {
-            return;
-        }
-        if (!hasRequiredItems(savedSkill)) {
-            player.setActiveSkillId("");
-            return;
-        }
-        gatheringService.start(player, savedSkill);
-    }
-
-    private boolean isSkillAvailableInCurrentRegion(SkillDefinition skill) {
-        if (!skill.isRegionRestricted()) {
-            return true;
-        }
-        return regionService.getCurrentRegion(player).skillIds().contains(skill.id());
     }
 
     private void configureLists() {

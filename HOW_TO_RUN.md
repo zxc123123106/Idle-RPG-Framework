@@ -122,7 +122,7 @@ mvn -version
 - 地圖：已解鎖地圖可直接點擊前往；未解鎖地圖會顯示等級與任務需求。
 - 商店：購買目前區域商品，或切換出售模式批量出售背包物品。
 
-## 5. 存檔與離線收益
+## 5. 存檔
 
 存檔位置：
 
@@ -136,14 +136,6 @@ mvn -version
 - 在重要操作後自動存檔。
 - 關閉視窗時存檔。
 - 支援右上角手動存檔。
-
-若存檔時有正在執行的採集或烹飪事件，下次啟動會計算離線收益：
-
-- 最多計算 8 小時。
-- 會套用技能等級與工具速度加成。
-- 烹飪等消耗型事件受背包材料數量限制。
-- 材料在離線期間耗盡時，活動會停止。
-- 原事件仍存在且目前區域允許時，載入後會繼續執行。
 
 若想重新開始，可先關閉遊戲，再刪除：
 
@@ -466,7 +458,6 @@ RegistryTest
 JsonDataLoaderTest
 InventoryServiceTest
 GatheringServiceTest
-OfflineProgressServiceTest
 CombatServiceTest
 SaveServiceTest
 RegionServiceTest
@@ -477,7 +468,7 @@ PlayerTest
 SkillSpeedCalculatorTest
 ```
 
-目前驗證結果為 26 個測試通過。
+目前驗證結果為 23 個測試通過。
 
 ## 16. 常見問題
 

@@ -15,9 +15,9 @@
 
 本專題實作一套以 Java 26 與 JavaFX 開發的 Idle RPG Framework。專題參考放置型角色扮演遊戲的操作方式，但重點並非複製特定遊戲內容，而是設計一套低耦合、可維護、可測試且能持續擴充的遊戲架構。
 
-系統採用 MVC、Service Layer、Event Bus、Registry、Factory、Strategy、Command 與 Tick-Based Engine。道具、技能事件、敵人、區域、任務與商店商品由 JSON 載入，使遊戲內容與核心程式分離。玩家可進行採礦、釣魚、採集、烹飪、戰鬥、裝備、商店交易、任務與地圖解鎖，並具有本機存檔及最多八小時的離線收益。
+系統採用 MVC、Service Layer、Event Bus、Registry、Factory、Strategy、Command 與 Tick-Based Engine。道具、技能事件、敵人、區域、任務與商店商品由 JSON 載入，使遊戲內容與核心程式分離。玩家可進行採礦、釣魚、採集、烹飪、戰鬥、裝備、商店交易、任務與地圖解鎖，並具有本機存檔功能。
 
-介面使用 FXML 與 JavaFX CSS 製作深色系三欄式遊戲畫面。左側顯示玩家能力與事件，中央顯示目前選取的主要功能，右側提供可互動的文字背包，底部則保留戰鬥、裝備、任務、地圖與商店等全域功能。專案目前包含 69 個主要 Java 類別、15 個測試類別及 6 份遊戲資料 JSON，並已通過 26 個自動化測試。
+介面使用 FXML 與 JavaFX CSS 製作深色系三欄式遊戲畫面。左側顯示玩家能力與事件，中央顯示目前選取的主要功能，右側提供可互動的文字背包，底部則保留戰鬥、裝備、任務、地圖與商店等全域功能。專案目前包含 67 個主要 Java 類別、14 個測試類別及 6 份遊戲資料 JSON，並已通過 23 個自動化測試。
 
 **關鍵字：** JavaFX、MVC、Idle RPG、Event-Driven Architecture、Data-Driven Design、Design Patterns
 
@@ -47,7 +47,7 @@
 4. 使用 Registry 與 JSON 建立資料驅動內容。
 5. 使用 Strategy 與 Factory 支援不同事件行為。
 6. 使用 Tick Engine 統一採集與戰鬥更新。
-7. 提供任務、地圖、裝備、商店、存檔與離線收益。
+7. 提供任務、地圖、裝備、商店與存檔。
 8. 建立自動化測試，驗證核心規則。
 
 本框架的可擴充範圍分為兩層：
@@ -100,7 +100,7 @@ com.idlerpg.Launcher
 - 任務追蹤與獎勵領取。
 - 區域解鎖與區域內容切換。
 - 商店購買及批量出售。
-- 本機存檔、載入及離線收益。
+- 本機存檔與載入。
 
 ### 4.2 非功能需求
 
@@ -268,7 +268,6 @@ classDiagram
         -gold int
         -currentHp int
         -currentRegionId String
-        -activeSkillId String
         +addExperience(int)
         +addSkillExperience(ActionType, int)
         +takeDamage(int)
@@ -288,8 +287,6 @@ classDiagram
         +skillLevels Map
         +equipment Map
         +questProgress Map
-        +activeSkillId String
-        +lastSavedAtEpochSecond long
     }
 
     Player *-- Inventory
@@ -367,7 +364,7 @@ classDiagram
 
 ### 5.6 Service、Factory 與 Strategy 類別圖
 
-此圖說明採集、戰鬥與離線結算的主要協作關係。`GameContext` 提供各 Service 所需的 Player、Registry 與其他服務，避免核心邏輯依賴 JavaFX。
+此圖說明採集與戰鬥系統的主要協作關係。`GameContext` 提供各 Service 所需的 Player、Registry 與其他服務，避免核心邏輯依賴 JavaFX。
 
 ```mermaid
 classDiagram
@@ -399,8 +396,8 @@ classDiagram
         -activeSkill SkillDefinition
         -activeStrategy ActionStrategy
         -progressTicks int
-        +start(Player, SkillDefinition) void
-        +stop(Player) void
+        +start(SkillDefinition) void
+        +stop() void
         +tick(GameContext) void
     }
     GatheringService --> SkillFactory
@@ -448,13 +445,6 @@ classDiagram
     class SkillSpeedCalculator {
         +requiredTicks(Player, SkillDefinition, lookup) int
     }
-    class OfflineProgressService {
-        +applyOfflineProgress(GameContext, long) OfflineProgressResult
-    }
-    OfflineProgressService --> SkillSpeedCalculator
-    OfflineProgressService --> GameContext
-    OfflineProgressService --> InventoryService
-    OfflineProgressService --> ProgressionService
 ```
 
 ### 5.7 View、Controller 與 Command 類別圖
@@ -514,7 +504,6 @@ classDiagram
     AppController --> EquipmentService
     AppController --> ShopService
     AppController --> SaveService
-    AppController --> OfflineProgressService
     SaveService --> SaveGame : serialize and restore
 ```
 
@@ -734,7 +723,7 @@ speedBonusPercent
 
 商店內容由目前區域與 `shop.json` 共同決定。玩家可購買商品，也可切換出售模式，使用數量控制一次出售多個物品。
 
-### 8.7 存檔與離線收益
+### 8.7 存檔
 
 存檔預設位置：
 
@@ -749,10 +738,6 @@ speedBonusPercent
 - 技能等級及技能 EXP。
 - 任務進度與領獎狀態。
 - 已解鎖區域與目前區域。
-- 正在執行的事件。
-- 最後存檔時間。
-
-離線收益最多計算八小時，並使用目前技能等級及工具速度計算完成輪數。消耗型事件會依材料數量限制產量；材料不足時停止活動，避免離線烹飪產生無限物品。
 
 ---
 
@@ -778,7 +763,7 @@ speedBonusPercent
 
 ### 10.1 自動化測試
 
-目前共有 15 個測試類別、26 個測試案例：
+目前共有 14 個測試類別、23 個測試案例：
 
 | 測試類別 | 驗證內容 |
 |---|---|
@@ -787,9 +772,8 @@ speedBonusPercent
 | `JsonDataLoaderTest` | JSON 載入與資料引用 |
 | `InventoryServiceTest` | 道具堆疊、移除與事件 |
 | `GatheringServiceTest` | 採集、材料消耗、工具速度 |
-| `OfflineProgressServiceTest` | 八小時上限、工具速度、材料限制 |
 | `CombatServiceTest` | 防禦、勝利、戰敗處理 |
-| `SaveServiceTest` | 玩家、背包、任務、區域與活動保存 |
+| `SaveServiceTest` | 玩家、背包、任務與區域保存 |
 | `RegionServiceTest` | 等級及任務解鎖 |
 | `QuestServiceTest` | 任務進度與獎勵 |
 | `ShopServiceTest` | 扣款與加入商品 |
@@ -815,7 +799,7 @@ JUnit-compatible manual test runner
 測試程式編譯通過
 FXML 格式通過
 6 份 JSON 語法通過
-26 / 26 tests passed
+23 / 23 tests passed
 ```
 
 ---
@@ -838,11 +822,7 @@ FXML 格式通過
 
 原本多個功能同時堆在中央，視窗高度不足時無法操作。重構後中央改為 StackPane 單頁切換，各頁使用 ScrollPane，底部導覽固定不參與捲動。
 
-### 11.5 離線烹飪漏洞
-
-舊版離線收益只依時間計算，若直接套用到烹飪會忽略材料。新版先計算時間可完成輪數，再以材料可完成輪數取最小值，並一次扣除材料。
-
-### 11.6 事件類型語意錯誤
+### 11.5 事件類型語意錯誤
 
 藥草採集原本暫用 `FISHING`，導致左側分類與技能經驗不正確。新版增加 `GATHERING`、`GatheringStrategy` 與 Factory/UI 對應，使資料語意一致。
 
@@ -859,9 +839,9 @@ FXML 格式通過
 - Registry、Factory、Strategy、Command 等模式。
 - 六份 JSON 資料檔與資料載入器。
 - 深色系三欄玩家介面。
-- 任務、地圖、裝備、商店、存檔與離線收益。
+- 任務、地圖、裝備、商店與存檔。
 - PlantUML 架構文件。
-- 26 個通過的自動化測試。
+- 23 個通過的自動化測試。
 - 操作與內容擴充文件。
 
 ---
@@ -891,7 +871,7 @@ FXML 格式通過
 
 ## 十四、結論
 
-本專題證明放置型 RPG 不只能作為遊戲成品，也能作為軟體架構與物件導向設計的展示平台。透過 MVC、Service Layer 與 Event Bus，畫面和遊戲規則得以分離；透過 Registry、Factory 與 Strategy，不同行為具有共同介面；透過 JSON，內容數值與 Java 核心程式分離；透過自動化測試，採集、戰鬥、裝備、任務、存檔與離線收益可被重複驗證。
+本專題證明放置型 RPG 不只能作為遊戲成品，也能作為軟體架構與物件導向設計的展示平台。透過 MVC、Service Layer 與 Event Bus，畫面和遊戲規則得以分離；透過 Registry、Factory 與 Strategy，不同行為具有共同介面；透過 JSON，內容數值與 Java 核心程式分離；透過自動化測試，採集、戰鬥、裝備、任務與存檔可被重複驗證。
 
 最後成果不只是一組固定遊戲內容，而是一個能繼續加入事件、道具、敵人、任務與區域的 Idle RPG Framework。這也符合本專題最初目標：以可維護性、可擴充性與低耦合為核心，完成具備玩家體驗的桌面遊戲框架。
 
@@ -918,7 +898,6 @@ final_prj/
 │       ├── equipment/
 │       ├── gathering/
 │       ├── inventory/
-│       ├── offline/
 │       ├── progression/
 │       ├── quest/
 │       ├── region/

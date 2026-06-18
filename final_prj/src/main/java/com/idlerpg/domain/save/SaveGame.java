@@ -1,8 +1,11 @@
 package com.idlerpg.domain.save;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.util.Map;
 import java.util.Set;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record SaveGame(
         int level,
         int experience,
@@ -17,9 +20,7 @@ public record SaveGame(
         Map<String, String> equipment,
         Map<String, Integer> questProgress,
         Set<String> completedQuestIds,
-        Set<String> claimedQuestIds,
-        String activeSkillId,
-        long lastSavedAtEpochSecond
+        Set<String> claimedQuestIds
 ) {
     public SaveGame {
         currentRegionId = currentRegionId == null || currentRegionId.isBlank() ? "sunlit_meadow" : currentRegionId;
@@ -31,6 +32,5 @@ public record SaveGame(
         questProgress = questProgress == null ? Map.of() : Map.copyOf(questProgress);
         completedQuestIds = completedQuestIds == null ? Set.of() : Set.copyOf(completedQuestIds);
         claimedQuestIds = claimedQuestIds == null ? Set.of() : Set.copyOf(claimedQuestIds);
-        activeSkillId = activeSkillId == null ? "" : activeSkillId;
     }
 }

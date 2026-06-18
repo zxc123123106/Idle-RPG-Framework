@@ -5,19 +5,12 @@ participant "GatheringService" as Gathering
 participant "CombatService" as Combat
 participant "QuestService" as Quest
 participant "SaveService" as Save
-participant "OfflineProgressService" as Offline
 participant "EventBus" as EventBus
 participant "JavaFX Controller" as Controller
 
 User -> Controller: Start action / combat
 Controller -> Gathering: start(skill)
 Controller -> Combat: startCombat(enemy)
-
-alt application startup with saved activity
-  Controller -> Save: load()
-  Controller -> Offline: applyOfflineProgress(context)
-  Offline -> Gathering: resume valid activity
-end
 
 loop every second
   Engine -> Gathering: tick(context)

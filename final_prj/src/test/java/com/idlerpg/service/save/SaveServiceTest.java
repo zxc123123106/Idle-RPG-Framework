@@ -26,7 +26,6 @@ class SaveServiceTest {
         player.getInventory().addItem(ore, 4);
         player.getQuestProgress().put("first_ore", 4);
         player.getCompletedQuestIds().add("first_ore");
-        player.setActiveSkillId("mine_copper");
 
         SaveService saveService = new SaveService(tempDir.resolve("save.json"));
         saveService.save(player);
@@ -39,6 +38,5 @@ class SaveServiceTest {
         assertEquals("iron_ridge", restored.getCurrentRegionId());
         assertEquals(4, restored.getInventory().getQuantity("copper_ore"));
         assertTrue(restored.getCompletedQuestIds().contains("first_ore"));
-        assertEquals("mine_copper", restored.getActiveSkillId());
     }
 }

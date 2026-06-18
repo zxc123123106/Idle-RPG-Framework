@@ -29,20 +29,10 @@ public final class GatheringService implements Tickable {
         progressTicks = 0;
     }
 
-    public synchronized void start(com.idlerpg.domain.player.Player player, SkillDefinition skill) {
-        start(skill);
-        player.setActiveSkillId(skill.id());
-    }
-
     public synchronized void stop() {
         activeSkill = null;
         activeStrategy = null;
         progressTicks = 0;
-    }
-
-    public synchronized void stop(com.idlerpg.domain.player.Player player) {
-        stop();
-        player.setActiveSkillId("");
     }
 
     public synchronized Optional<SkillDefinition> getActiveSkill() {
@@ -108,7 +98,7 @@ public final class GatheringService implements Tickable {
         }
 
         if (!consumeRequiredItems(context, activeSkill)) {
-            stop(context.getPlayer());
+            stop();
             return;
         }
 

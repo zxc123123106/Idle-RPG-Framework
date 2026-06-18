@@ -12,7 +12,6 @@ import com.idlerpg.domain.skill.ActionType;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -35,7 +34,6 @@ public final class SaveService {
     }
 
     public void save(Player player) throws IOException {
-        player.setLastSavedAtEpochSecond(Instant.now().getEpochSecond());
         if (savePath.getParent() != null) {
             Files.createDirectories(savePath.getParent());
         }
@@ -74,9 +72,7 @@ public final class SaveService {
                 equipment,
                 player.getQuestProgress(),
                 player.getCompletedQuestIds(),
-                player.getClaimedQuestIds(),
-                player.getActiveSkillId(),
-                player.getLastSavedAtEpochSecond()
+                player.getClaimedQuestIds()
         );
     }
 
@@ -113,7 +109,5 @@ public final class SaveService {
         player.getCompletedQuestIds().addAll(saveGame.completedQuestIds());
         player.getClaimedQuestIds().clear();
         player.getClaimedQuestIds().addAll(saveGame.claimedQuestIds());
-        player.setActiveSkillId(saveGame.activeSkillId());
-        player.setLastSavedAtEpochSecond(saveGame.lastSavedAtEpochSecond());
     }
 }

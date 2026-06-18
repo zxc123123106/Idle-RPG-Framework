@@ -4,7 +4,6 @@ import com.idlerpg.domain.item.Inventory;
 import com.idlerpg.domain.item.EquipmentSlot;
 import com.idlerpg.domain.skill.ActionType;
 
-import java.time.Instant;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -21,8 +20,6 @@ public final class Player {
     private int equipmentDefenseBonus;
     private int equipmentHpBonus;
     private String currentRegionId = "sunlit_meadow";
-    private String activeSkillId = "";
-    private long lastSavedAtEpochSecond = Instant.now().getEpochSecond();
     private final Inventory inventory = new Inventory();
     private final Set<String> unlockedRegionIds = new HashSet<>();
     private final Map<ActionType, Integer> skillLevels = new EnumMap<>(ActionType.class);
@@ -86,22 +83,6 @@ public final class Player {
         }
         this.currentRegionId = currentRegionId;
         unlockedRegionIds.add(currentRegionId);
-    }
-
-    public String getActiveSkillId() {
-        return activeSkillId;
-    }
-
-    public void setActiveSkillId(String activeSkillId) {
-        this.activeSkillId = activeSkillId == null ? "" : activeSkillId;
-    }
-
-    public long getLastSavedAtEpochSecond() {
-        return lastSavedAtEpochSecond;
-    }
-
-    public void setLastSavedAtEpochSecond(long lastSavedAtEpochSecond) {
-        this.lastSavedAtEpochSecond = lastSavedAtEpochSecond;
     }
 
     public Set<String> getUnlockedRegionIds() {

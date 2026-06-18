@@ -4,7 +4,7 @@ skinparam packageStyle rectangle
 package "view\nFXML + CSS" as view
 package controller
 package command
-package "service\ninventory/combat/gathering\nregion/quest/shop/save/offline" as service
+package "service\ninventory/combat/gathering\nregion/quest/shop/save" as service
 package domain
 package "core.event" as event
 package "core.engine" as engine
