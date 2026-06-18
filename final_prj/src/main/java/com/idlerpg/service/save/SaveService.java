@@ -75,7 +75,7 @@ public final class SaveService {
                 player.getQuestProgress(),
                 player.getCompletedQuestIds(),
                 player.getClaimedQuestIds(),
-                "",
+                player.getActiveSkillId(),
                 player.getLastSavedAtEpochSecond()
         );
     }
@@ -113,7 +113,7 @@ public final class SaveService {
         player.getCompletedQuestIds().addAll(saveGame.completedQuestIds());
         player.getClaimedQuestIds().clear();
         player.getClaimedQuestIds().addAll(saveGame.claimedQuestIds());
-        player.setActiveSkillId("");
+        player.setActiveSkillId(saveGame.activeSkillId());
         player.setLastSavedAtEpochSecond(saveGame.lastSavedAtEpochSecond());
     }
 }

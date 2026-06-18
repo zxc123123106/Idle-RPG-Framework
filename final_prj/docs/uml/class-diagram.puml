@@ -54,6 +54,8 @@ class OfflineProgressService
 interface ActionStrategy
 class MiningStrategy
 class FishingStrategy
+class GatheringStrategy
+class CookingStrategy
 class CombatStrategy
 interface GameCommand
 
@@ -74,10 +76,15 @@ Tickable <|.. GatheringService
 Tickable <|.. CombatService
 ActionStrategy <|.. MiningStrategy
 ActionStrategy <|.. FishingStrategy
+ActionStrategy <|.. GatheringStrategy
+ActionStrategy <|.. CookingStrategy
 ActionStrategy <|.. CombatStrategy
 
 Player *-- Inventory
 InventoryService ..> Player
+SaveService ..> SaveGame
+OfflineProgressService ..> Player
+OfflineProgressService ..> SkillDefinition
 GatheringService ..> ActionStrategy
 CombatService ..> EnemyDefinition
 ProgressionService ..> Player

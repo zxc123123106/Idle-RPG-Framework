@@ -42,6 +42,8 @@ import com.idlerpg.service.combat.CombatService;
 import com.idlerpg.service.equipment.EquipmentService;
 import com.idlerpg.service.gathering.GatheringService;
 import com.idlerpg.service.inventory.InventoryService;
+import com.idlerpg.service.offline.OfflineProgressResult;
+import com.idlerpg.service.offline.OfflineProgressService;
 import com.idlerpg.service.progression.ProgressionService;
 import com.idlerpg.service.progression.SkillSpeedCalculator;
 import com.idlerpg.service.quest.QuestService;
@@ -74,6 +76,7 @@ import javafx.util.Duration;
 import javafx.util.StringConverter;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumSet;
@@ -149,6 +152,7 @@ public final class AppController {
     @FXML private ListView<ShopRow> shopListView;
     @FXML private Button shopActionButton;
 
+    @FXML private Button combatNavButton;
     @FXML private Button equipmentNavButton;
     @FXML private Button journalNavButton;
     @FXML private Button mapNavButton;
@@ -182,6 +186,7 @@ public final class AppController {
     private MainViewMode currentViewMode = MainViewMode.EVENT;
     private SideEntry selectedSideEntry;
     private InventoryStack selectedInventoryStack;
+    private String startupNotice = "歡迎回到冒險旅程";
 
     @FXML
     private void initialize() {
@@ -194,6 +199,11 @@ public final class AppController {
         } catch (IOException exception) {
             throw new IllegalStateException("無法載入遊戲資料：" + exception.getMessage(), exception);
         }
+    }
+
+    @FXML
+    private void onShowCombat() {
+        showMode(MainViewMode.COMBAT);
     }
 
     @FXML
@@ -469,6 +479,7 @@ public final class AppController {
 
         restoreSaveIfPresent(itemRegistry);
         ensureValidCurrentRegion();
+        applyOfflineProgressAndResume();
         regionService.unlockEligibleRegions(player);
         subscribeToEvents(eventBus);
         engine = new GameEngine(context);
@@ -476,7 +487,7 @@ public final class AppController {
         engine.register(combatService);
         engine.start();
         refreshAll();
-        notifyPlayer("歡迎回到冒險旅程");
+        notifyPlayer(startupNotice);
     }
 
     private void restoreSaveIfPresent(ItemRegistry itemRegistry) {
@@ -484,7 +495,6 @@ public final class AppController {
             Optional<com.idlerpg.domain.save.SaveGame> saveGame = saveService.load();
             if (saveGame.isPresent()) {
                 saveService.restore(player, saveGame.get(), itemRegistry);
-                player.setActiveSkillId("");
                 equipmentService.recalculateBonuses(player, itemLookup);
                 saveStatusLabel.setText("已載入存檔");
             } else {
@@ -494,6 +504,49 @@ public final class AppController {
             saveStatusLabel.setText("新遊戲");
             addReward("舊存檔無法讀取，已建立新旅程");
         }
+    }
+
+    private void applyOfflineProgressAndResume() {
+        String savedSkillId = player.getActiveSkillId();
+        if (savedSkillId.isBlank()) {
+            return;
+        }
+        SkillDefinition savedSkill = context.getSkillRegistry().get(savedSkillId).orElse(null);
+        if (savedSkill == null || !isSkillAvailableInCurrentRegion(savedSkill)) {
+            player.setActiveSkillId("");
+            startupNotice = "原本進行的活動已不存在或不屬於目前區域";
+            return;
+        }
+
+        OfflineProgressResult result = new OfflineProgressService()
+                .applyOfflineProgress(context, Instant.now().getEpochSecond());
+        if (result.hasRewards()) {
+            ItemDefinition reward = itemLookup.get(result.itemId());
+            String rewardName = reward == null ? result.itemId() : reward.name();
+            startupNotice = "離線收益：" + rewardName + " x" + result.quantity()
+                    + " / EXP +" + result.experience();
+            if (result.stoppedForMissingMaterials()) {
+                startupNotice += "；材料已耗盡，活動停止";
+            }
+        } else if (result.stoppedForMissingMaterials()) {
+            startupNotice = "離線期間材料耗盡，活動已停止";
+        }
+
+        if (player.getActiveSkillId().isBlank()) {
+            return;
+        }
+        if (!hasRequiredItems(savedSkill)) {
+            player.setActiveSkillId("");
+            return;
+        }
+        gatheringService.start(player, savedSkill);
+    }
+
+    private boolean isSkillAvailableInCurrentRegion(SkillDefinition skill) {
+        if (!skill.isRegionRestricted()) {
+            return true;
+        }
+        return regionService.getCurrentRegion(player).skillIds().contains(skill.id());
     }
 
     private void configureLists() {
@@ -1130,6 +1183,7 @@ public final class AppController {
         setVisibleManaged(journalView, currentViewMode == MainViewMode.JOURNAL);
         setVisibleManaged(mapView, currentViewMode == MainViewMode.MAP);
         setVisibleManaged(shopView, currentViewMode == MainViewMode.SHOP);
+        setNavActive(combatNavButton, currentViewMode == MainViewMode.COMBAT);
         setNavActive(equipmentNavButton, currentViewMode == MainViewMode.EQUIPMENT);
         setNavActive(journalNavButton, currentViewMode == MainViewMode.JOURNAL);
         setNavActive(mapNavButton, currentViewMode == MainViewMode.MAP);
@@ -1498,6 +1552,7 @@ public final class AppController {
         return switch (actionType) {
             case MINING -> "採礦";
             case FISHING -> "釣魚";
+            case GATHERING -> "採集";
             case COOKING -> "烹飪";
         };
     }
@@ -1506,6 +1561,7 @@ public final class AppController {
         return switch (actionType) {
             case MINING -> "Mining";
             case FISHING -> "Fishing";
+            case GATHERING -> "Gathering";
             case COOKING -> "Cooking";
         };
     }
@@ -1514,6 +1570,7 @@ public final class AppController {
         return switch (actionType) {
             case MINING -> "⛏";
             case FISHING -> "≈";
+            case GATHERING -> "✦";
             case COOKING -> "♨";
         };
     }

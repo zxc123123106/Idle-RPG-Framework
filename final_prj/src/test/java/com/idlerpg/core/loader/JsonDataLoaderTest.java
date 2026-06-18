@@ -44,5 +44,7 @@ class JsonDataLoaderTest {
                         .anyMatch(skill -> skill.actionType() == ActionType.FISHING)));
         assertTrue(data.skills().stream()
                 .anyMatch(skill -> !skill.isRegionRestricted()));
+        assertTrue(data.skills().stream()
+                .anyMatch(skill -> skill.actionType() == ActionType.GATHERING));
     }
 }

@@ -92,7 +92,7 @@
   {
     "id": "gather_shadow_herb",
     "name": "採集影葉草",
-    "actionType": "FISHING",
+    "actionType": "GATHERING",
     "durationTicks": 6,
     "rewardItemId": "shadow_herb",
     "rewardQuantity": 1,

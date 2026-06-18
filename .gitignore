@@ -1,0 +1,59 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+
+# IntelliJ IDEA / JetBrains
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# VS Code
+.vscode/
+
+# Java / Maven build output
+target/
+build/
+dist/
+*.class
+*.jar
+*.war
+*.ear
+
+# Maven wrapper binary is allowed if a wrapper is added later.
+!.mvn/wrapper/maven-wrapper.jar
+
+# Logs and runtime output
+*.log
+logs/
+hs_err_pid*
+replay_pid*
+
+# JavaFX / local app runtime files
+.idle-rpg-framework/
+save.json
+
+# Test and coverage output
+coverage/
+.coverage
+jacoco.exec
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# OS/editor metadata
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+SPEECH.md

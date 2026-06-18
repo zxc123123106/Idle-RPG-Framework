@@ -39,6 +39,6 @@ class SaveServiceTest {
         assertEquals("iron_ridge", restored.getCurrentRegionId());
         assertEquals(4, restored.getInventory().getQuantity("copper_ore"));
         assertTrue(restored.getCompletedQuestIds().contains("first_ore"));
-        assertEquals("", restored.getActiveSkillId());
+        assertEquals("mine_copper", restored.getActiveSkillId());
     }
 }

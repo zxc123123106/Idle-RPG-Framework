@@ -1,20 +1,20 @@
-# Idle RPG Framework 操作說明
+# Idle RPG Framework 操作與擴充說明
 
-本文件說明如何在 IntelliJ IDEA 中開啟、執行與測試 `final_prj` 專案。
+本文件說明如何在 IntelliJ IDEA 執行 `final_prj`、操作遊戲，以及透過 JSON 新增道具、事件、敵人、地圖、任務與商店內容。
 
 ## 1. 專案位置
 
-主要 Java 專案位於：
+主要 Maven 專案：
 
 ```text
-final_prj/
+/Users/ian/Documents/swfw/final/final_prj
 ```
 
 重要檔案：
 
 ```text
 final_prj/pom.xml
-final_prj/src/main/java/com/idlerpg/Main.java
+final_prj/src/main/java/com/idlerpg/Launcher.java
 final_prj/src/main/resources/view/fxml/main.fxml
 final_prj/src/main/resources/view/css/app.css
 final_prj/src/main/resources/data/items.json
@@ -28,106 +28,148 @@ final_prj/docs/uml/
 
 ## 2. 使用 IntelliJ IDEA 執行
 
-建議使用 IntelliJ IDEA 執行，因為目前專案已設定為 Maven + JavaFX 專案。
-
-步驟：
-
 1. 開啟 IntelliJ IDEA。
 2. 選擇 `Open`。
-3. 選擇：
-
-```text
-/Users/ian/Documents/swfw/final/final_prj
-```
-
-4. IntelliJ 偵測到 `pom.xml` 後，選擇以 Maven project 匯入。
+3. 選擇 `/Users/ian/Documents/swfw/final/final_prj`。
+4. IntelliJ 偵測到 `pom.xml` 後，以 Maven project 匯入。
 5. 等待 Maven dependencies 載入完成。
-6. 開啟：
+6. 將 Project SDK 設為 JDK 26。
+7. 開啟 `src/main/java/com/idlerpg/Launcher.java`。
+8. 執行 `com.idlerpg.Launcher`。
+
+若需要手動建立 Run Configuration：
 
 ```text
-src/main/java/com/idlerpg/Launcher.java
+Type: Application
+Main class: com.idlerpg.Launcher
+Working directory: /Users/ian/Documents/swfw/final/final_prj
+JRE: JDK 26
+VM options: --enable-native-access=ALL-UNNAMED
 ```
 
-7. 按下 `Run` 執行 `com.idlerpg.Launcher`。
-
-如果 IntelliJ 沒有自動建立 Run Configuration：
-
-1. 點選右上角 `Add Configuration...`
-2. 新增 `Application`
-3. Main class 設為：
+請不要直接把 `com.idlerpg.Main` 當成一般 Java 程式執行，否則可能出現：
 
 ```text
-com.idlerpg.Launcher
+JavaFX runtime components are missing
 ```
 
-4. Working directory 設為：
+## 3. 是否需要安裝 Maven
 
-```text
-/Users/ian/Documents/swfw/final/final_prj
+只使用 IntelliJ IDEA 時通常不需要另外安裝 `mvn`。IntelliJ 可直接讀取 `pom.xml`、下載 dependencies、執行程式與測試。
+
+若要在 Terminal 使用以下指令，才需要安裝 Maven：
+
+```bash
+mvn test
+mvn javafx:run
 ```
 
-5. 使用 JDK 26。
+macOS 可使用 Homebrew 安裝：
 
-## 3. 遊戲操作方式
+```bash
+brew install maven
+mvn -version
+```
 
-程式啟動後會看到深色系 JavaFX 遊戲視窗，主要區塊如下：
+## 4. 遊戲畫面與操作
 
-- 上方狀態列：顯示等級、經驗、生命、金幣、攻擊、防禦、目前區域、存檔狀態。
-- 左側冒險區：切換已解鎖區域、開始採集、開始戰鬥。
-- 中央分頁：任務、背包、裝備、商店。
-- 右側面板：角色技能等級與最近獎勵摘要。
-- 底部浮動提示：顯示短暫玩家通知，不再顯示工程用 Event Log。
+畫面分為四個主要部分：
 
-採集流程：
+- 上方狀態列：等級、經驗、生命、金幣、目前區域與存檔狀態。
+- 左側狀態與事件列：Attack、Health、Defence，以及目前區域可用的 Mining、Fishing、Gathering、Cooking。
+- 中央主畫面：一次只顯示目前選取的事件或全域功能。
+- 右側背包：可篩選並選取道具，查看名稱、稀有度、用途、價值與能力。
+- 底部全域導覽：戰鬥、裝備、任務、地圖、商店。
 
-1. 在左側 `採集活動` 下拉選單選擇技能。
-2. 點擊 `開始採集`。
-3. 等待進度條跑完。
-4. 完成後背包會增加道具，玩家 EXP 與技能 EXP 會上升。
-5. 點擊 `停止` 可停止目前採集。
+### 4.1 採集與烹飪
 
-戰鬥流程：
+1. 在左側選擇 `Mining`、`Fishing`、`Gathering` 或 `Cooking`。
+2. 在中央選擇要執行的事件。
+3. 查看每輪時間、獎勵與材料需求。
+4. 按 `▶` 開始。
+5. 執行時按鈕會變成 `Ⅱ`，再次按下即可停止。
+6. 時間條完成後，道具、玩家 EXP、技能 EXP 與任務進度會更新。
 
-1. 在左側 `戰鬥` 下拉選單選擇敵人。
-2. 點擊 `開始戰鬥`。
-3. 每秒會自動進行一次戰鬥 tick。
-4. 勝利後會獲得 EXP 與 Gold，相關任務也會推進。
-5. 點擊 `撤退` 可停止目前戰鬥。
+`Cooking` 會先消耗指定材料。材料不足時無法開始；活動執行中若材料耗盡，系統會自動停止。
 
-任務流程：
+### 4.2 戰鬥
 
-1. 在中央 `任務` 分頁查看目前區域任務。
-2. 完成採集或戰鬥目標後，任務狀態會變成可領取。
-3. 選擇任務並點擊 `領取選中任務獎勵`。
-4. 任務可能會給 Gold、EXP、道具，或解鎖新區域。
+1. 點擊底部 `戰鬥`，或點左側 Attack。
+2. 選擇敵人。
+3. 按 `▶` 開始自動戰鬥。
+4. 執行中按鈕變為 `Ⅱ`，可用同一按鈕撤退。
+5. 勝利後獲得 EXP、Gold 並更新戰鬥任務。
+6. 戰敗時會扣除目前經驗的一部分，並回復部分 HP。
 
-裝備與商店：
+### 4.3 背包與道具
 
-1. 在 `商店` 分頁購買裝備或道具。
-2. 在 `背包` 分頁選擇裝備，點擊 `裝備選中道具`。
-3. 在 `裝備` 分頁查看目前裝備欄位，也可卸下選中欄位。
+1. 使用右側下拉選單篩選全部、資源、食品或裝備。
+2. 點選背包項目查看詳細資料。
+3. 食品可直接食用並回復 HP。
+4. 裝備可直接裝備。
+5. 不需要的物品可刪除，或到商店切換出售模式換取 Gold。
 
-存檔：
+### 4.4 裝備
 
-- 遊戲會自動定期存檔，也可以點擊右上角 `手動存檔`。
-- 存檔位置預設為：
+1. 點擊底部 `裝備`。
+2. 查看武器、防具、工具與飾品欄位。
+3. 裝備物品可增加攻擊、防禦、最大 HP，或加快指定事件。
+4. 選取裝備欄後可卸下裝備。
+
+### 4.5 任務、地圖與商店
+
+- 任務：完成條件後選取任務並領取獎勵。
+- 地圖：已解鎖地圖可直接點擊前往；未解鎖地圖會顯示等級與任務需求。
+- 商店：購買目前區域商品，或切換出售模式批量出售背包物品。
+
+## 5. 存檔與離線收益
+
+存檔位置：
 
 ```text
 ~/.idle-rpg-framework/save.json
 ```
 
-## 4. 修改遊戲資料
+遊戲會：
 
-本專題採資料驅動設計，新增或調整內容主要改 JSON。
+- 每 10 個 tick 自動存檔。
+- 在重要操作後自動存檔。
+- 關閉視窗時存檔。
+- 支援右上角手動存檔。
 
-修改 JSON 時請注意：
+若存檔時有正在執行的採集或烹飪事件，下次啟動會計算離線收益：
 
-- 每個物件的 `id` 必須唯一，建議使用英文小寫與底線。
-- JSON 陣列中每個物件之間要用逗號分隔。
-- 最後一個物件後面不要多加逗號。
-- 修改 JSON 後重新執行程式即可載入新資料。
+- 最多計算 8 小時。
+- 會套用技能等級與工具速度加成。
+- 烹飪等消耗型事件受背包材料數量限制。
+- 材料在離線期間耗盡時，活動會停止。
+- 原事件仍存在且目前區域允許時，載入後會繼續執行。
 
-### 4.1 新增 Item / 道具
+若想重新開始，可先關閉遊戲，再刪除：
+
+```text
+~/.idle-rpg-framework/save.json
+```
+
+## 6. 資料驅動擴充原則
+
+多數遊戲內容可直接改 JSON，不需要修改 Controller 或 Service：
+
+- 使用既有種類新增 item：只改 JSON。
+- 使用既有 `ActionType` 新增 event：只改 JSON，並把 id 掛到地圖。
+- 新增 enemy、quest、region、shop entry：只改 JSON 並維持 id 關聯。
+
+若要新增全新的行為種類，例如 `WOODCUTTING`：
+
+1. 修改 `ActionType` enum。
+2. 新增 `WoodcuttingStrategy`。
+3. 在 `SkillFactory` 加入建立規則。
+4. 在 Controller 加入名稱與圖示。
+5. 再用 JSON 新增實際事件。
+
+因此，已存在 `CookingStrategy` 且 Factory、enum、UI 都已支援 `COOKING` 時，新增新的料理事件只需修改 JSON。只有「新增全新的行為類型」才需要 Java 程式。
+
+## 7. 新增 Item
 
 修改：
 
@@ -135,7 +177,7 @@ com.idlerpg.Launcher
 final_prj/src/main/resources/data/items.json
 ```
 
-一般資源範例：
+### 7.1 一般資源
 
 ```json
 {
@@ -143,13 +185,28 @@ final_prj/src/main/resources/data/items.json
   "name": "銀礦石",
   "type": "RESOURCE",
   "value": 25,
-  "description": "帶有微光的銀色礦石，可販售或作為進階材料。",
+  "description": "帶有微光的銀色礦石。",
   "icon": "◆",
   "rarity": "UNCOMMON"
 }
 ```
 
-裝備範例：
+### 7.2 可食用道具
+
+```json
+{
+  "id": "herb_soup",
+  "name": "藥草湯",
+  "type": "CONSUMABLE",
+  "value": 35,
+  "description": "食用後回復生命。",
+  "icon": "♨",
+  "rarity": "UNCOMMON",
+  "healAmount": 45
+}
+```
+
+### 7.3 裝備
 
 ```json
 {
@@ -167,15 +224,34 @@ final_prj/src/main/resources/data/items.json
 }
 ```
 
-可用欄位：
+### 7.4 加速工具
+
+```json
+{
+  "id": "silver_pickaxe",
+  "name": "銀礦鎬",
+  "type": "EQUIPMENT",
+  "value": 260,
+  "description": "提高採礦速度。",
+  "icon": "⛏",
+  "rarity": "RARE",
+  "slot": "TOOL",
+  "attackBonus": 0,
+  "defenseBonus": 0,
+  "hpBonus": 0,
+  "speedActionType": "MINING",
+  "speedBonusPercent": 45
+}
+```
+
+可用值：
 
 - `type`：`RESOURCE`、`CONSUMABLE`、`EQUIPMENT`、`QUEST`
 - `rarity`：`COMMON`、`UNCOMMON`、`RARE`、`EPIC`
-- `slot`：只有裝備需要，可用 `WEAPON`、`ARMOR`、`TOOL`、`TRINKET`
+- `slot`：`WEAPON`、`ARMOR`、`TOOL`、`TRINKET`
+- `speedActionType`：`MINING`、`FISHING`、`GATHERING`、`COOKING`
 
-### 4.2 新增 Event / 採集事件
-
-目前可自主新增的 event 是採集事件，例如採礦或釣魚。
+## 8. 新增 Event
 
 修改：
 
@@ -183,7 +259,16 @@ final_prj/src/main/resources/data/items.json
 final_prj/src/main/resources/data/skills.json
 ```
 
-範例：
+目前支援：
+
+```text
+MINING
+FISHING
+GATHERING
+COOKING
+```
+
+### 8.1 不消耗材料
 
 ```json
 {
@@ -197,21 +282,37 @@ final_prj/src/main/resources/data/skills.json
 }
 ```
 
-欄位說明：
+### 8.2 消耗材料
 
-- `actionType`：目前支援 `MINING`、`FISHING`
-- `durationTicks`：完成一次事件需要幾秒
-- `rewardItemId`：必須對應 `items.json` 中存在的 `id`
-- `rewardQuantity`：每次完成給幾個道具
-- `expReward`：每次完成給多少玩家 EXP
+```json
+{
+  "id": "cook_herb_soup",
+  "name": "烹煮藥草湯",
+  "actionType": "COOKING",
+  "durationTicks": 6,
+  "rewardItemId": "herb_soup",
+  "rewardQuantity": 1,
+  "expReward": 30,
+  "consumeItemId": "shadow_herb",
+  "consumeQuantity": 2,
+  "regionRestricted": false
+}
+```
 
-新增後還要到 `regions.json` 把 event 掛到地圖，例如：
+欄位：
+
+- `durationTicks`：基礎完成秒數。
+- `rewardItemId`：必須存在於 `items.json`。
+- `consumeItemId`：選填，必須存在於 `items.json`。
+- `regionRestricted`：`false` 代表所有地圖都可使用；預設為 `true`。
+
+區域限定事件還要加到 `regions.json`：
 
 ```json
 "skillIds": ["mine_copper", "fish_river", "mine_silver"]
 ```
 
-### 4.3 新增 Enemy / 敵人
+## 9. 新增 Enemy
 
 修改：
 
@@ -219,26 +320,25 @@ final_prj/src/main/resources/data/skills.json
 final_prj/src/main/resources/data/enemies.json
 ```
 
-範例：
-
 ```json
 {
   "id": "cave_bat",
   "name": "洞穴蝙蝠",
   "maxHp": 55,
   "attack": 6,
+  "defense": 2,
   "expReward": 40,
   "goldReward": 12
 }
 ```
 
-新增後還要到 `regions.json` 把敵人掛到地圖，例如：
+再把 id 加到地圖：
 
 ```json
 "enemyIds": ["training_slime", "cave_bat"]
 ```
 
-### 4.4 新增 Region / 地圖
+## 10. 新增 Region
 
 修改：
 
@@ -246,13 +346,11 @@ final_prj/src/main/resources/data/enemies.json
 final_prj/src/main/resources/data/regions.json
 ```
 
-範例：
-
 ```json
 {
   "id": "silver_cave",
   "name": "銀光洞窟",
-  "description": "礦壁閃著銀色光芒的洞窟，適合進階採礦。",
+  "description": "礦壁閃著銀色光芒的洞窟。",
   "icon": "◇",
   "requiredLevel": 3,
   "requiredQuestId": "first_ore",
@@ -263,16 +361,9 @@ final_prj/src/main/resources/data/regions.json
 }
 ```
 
-欄位說明：
+所有 id 都必須指向其他 JSON 中已存在的資料。
 
-- `requiredLevel`：玩家達到此等級才可解鎖
-- `requiredQuestId`：可省略；若填寫，代表要先完成該任務
-- `skillIds`：此地圖可使用的採集事件 id
-- `enemyIds`：此地圖可挑戰的敵人 id
-- `shopItemIds`：此地圖商店可販售的 item id
-- `questIds`：此地圖會顯示的任務 id
-
-### 4.5 新增 Quest / 任務
+## 11. 新增 Quest
 
 修改：
 
@@ -280,60 +371,36 @@ final_prj/src/main/resources/data/regions.json
 final_prj/src/main/resources/data/quests.json
 ```
 
-採集任務範例：
-
 ```json
 {
   "id": "silver_supply",
   "title": "銀礦補給",
-  "description": "取得 5 個銀礦石，交給城鎮工匠。",
+  "description": "取得 5 個銀礦石。",
   "type": "GATHER_ITEM",
   "targetId": "silver_ore",
   "requiredCount": 5,
   "rewardExp": 90,
   "rewardGold": 70,
   "rewardItemId": "silver_sword",
-  "rewardQuantity": 1
+  "rewardQuantity": 1,
+  "unlockRegionId": "silver_cave"
 }
 ```
 
-戰鬥任務範例：
+任務類型：
 
-```json
-{
-  "id": "clear_bats",
-  "title": "清理洞窟",
-  "description": "擊敗 3 隻洞穴蝙蝠，讓礦工能安全進入。",
-  "type": "DEFEAT_ENEMY",
-  "targetId": "cave_bat",
-  "requiredCount": 3,
-  "rewardExp": 80,
-  "rewardGold": 60
-}
-```
+- `GATHER_ITEM`
+- `DEFEAT_ENEMY`
+- `OBTAIN_ITEM`
+- `REACH_LEVEL`
 
-任務可用類型：
-
-- `GATHER_ITEM`：收集指定 item
-- `DEFEAT_ENEMY`：擊敗指定 enemy
-- `OBTAIN_ITEM`：取得指定 item
-- `REACH_LEVEL`：達到指定等級
-
-如果任務完成後要解鎖地圖，可以加：
-
-```json
-"unlockRegionId": "silver_cave"
-```
-
-### 4.6 新增 Shop / 商店商品
+## 12. 新增 Shop 商品
 
 修改：
 
 ```text
 final_prj/src/main/resources/data/shop.json
 ```
-
-範例：
 
 ```json
 {
@@ -344,43 +411,30 @@ final_prj/src/main/resources/data/shop.json
 }
 ```
 
-注意：
+商品的 `itemId` 必須同時存在於 `items.json`，並加入對應地圖的 `shopItemIds`。
 
-- `itemId` 必須對應 `items.json`。
-- `requiredRegionId` 代表商品只會在該地圖商店出現。
-- 如果要讓商品出現在地圖商店，該 item id 也要加入 `regions.json` 的 `shopItemIds`。
+## 13. 新增完整內容的建議順序
 
-### 4.7 新增一套完整內容的建議順序
-
-如果你想新增一張地圖與相關內容，建議順序如下：
-
-1. 在 `items.json` 新增獎勵道具或裝備。
-2. 在 `skills.json` 新增採集 event，並讓 `rewardItemId` 指向新 item。
+1. 在 `items.json` 新增所有材料、獎勵與裝備。
+2. 在 `skills.json` 新增事件。
 3. 在 `enemies.json` 新增敵人。
-4. 在 `quests.json` 新增任務，任務的 `targetId` 指向 item 或 enemy。
-5. 在 `shop.json` 新增可購買商品。
-6. 在 `regions.json` 新增地圖，並填入 `skillIds`、`enemyIds`、`questIds`、`shopItemIds`。
-7. 重新執行遊戲。
+4. 在 `quests.json` 新增任務。
+5. 在 `shop.json` 新增商品。
+6. 在 `regions.json` 新增或修改地圖關聯。
+7. 驗證 JSON 語法與所有 id。
+8. 重新啟動遊戲。
 
 常見錯誤：
 
-- `skills.json` 的 `rewardItemId` 沒有對應到 `items.json`。
-- `regions.json` 的 `skillIds`、`enemyIds`、`questIds` 沒有對應到既有資料 id。
-- `shop.json` 的 `itemId` 必須對應 `items.json`。
-- `durationTicks` 代表完成一次採集需要幾秒。
-- 目前 Java 程式的 `ActionType` 只支援 `MINING`、`FISHING`；如果要新增伐木、料理、鍛造等全新類型，需要再修改 Java enum 與 UI 顯示。
+- id 重複。
+- `rewardItemId` 或 `consumeItemId` 不存在。
+- 地圖引用不存在的 skill、enemy、quest 或 item。
+- JSON 最後一筆資料後多放逗號。
+- 新增了全新 `ActionType`，但沒有同步 Strategy、Factory 與 UI。
 
-## 5. 自備素材
+## 14. 自備素材
 
-如果之後你想放自己的角色圖、怪物圖、道具圖示或背景圖，不需要自己改核心程式。
-
-建議先把素材放在：
-
-```text
-final_prj/src/main/resources/assets/
-```
-
-建議分類：
+建議放在：
 
 ```text
 final_prj/src/main/resources/assets/backgrounds/
@@ -389,31 +443,22 @@ final_prj/src/main/resources/assets/enemies/
 final_prj/src/main/resources/assets/items/
 ```
 
-建議檔名使用英文與底線，例如：
+目前 `icon` 使用文字或 Unicode 符號。若要改成圖片：
 
-```text
-assets/enemies/training_slime.png
-assets/items/iron_sword.png
-assets/backgrounds/sunlit_meadow.png
-```
+- 只是替換既有圖片路徑：可先在 JSON 新增路徑欄位，再由 UI 載入。
+- 要加入角色立繪、怪物圖、地圖背景或物品縮圖：需要修改 FXML、CSS 與 Controller 的圖片顯示邏輯。
 
-你可以把素材準備好後告訴我：
+素材本身可以自行準備，但第一次接入圖片系統仍需要程式修改；完成通用圖片欄位後，後續同類素材即可主要透過 JSON 替換。
 
-```text
-哪張圖對應哪個 region / enemy / item
-```
+## 15. 測試
 
-我再幫你把 JSON、FXML、CSS 或 controller 接上。若只是替換現有文字符號圖示，通常只需要調整資料檔；若要大幅改版面，例如角色立繪、地圖背景、怪物卡片，就會需要我改 UI 程式。
-
-## 6. 測試
-
-如果 IntelliJ 已成功匯入 Maven 專案，可以在 IntelliJ 中執行：
+IntelliJ 中可執行整個：
 
 ```text
 src/test/java
 ```
 
-或個別執行測試類別，例如：
+主要測試包含：
 
 ```text
 EventBusTest
@@ -421,170 +466,43 @@ RegistryTest
 JsonDataLoaderTest
 InventoryServiceTest
 GatheringServiceTest
+OfflineProgressServiceTest
 CombatServiceTest
 SaveServiceTest
 RegionServiceTest
 QuestServiceTest
 ShopServiceTest
 EquipmentServiceTest
+PlayerTest
+SkillSpeedCalculatorTest
 ```
 
-## 7. 需要安裝 mvn 嗎？
+目前驗證結果為 26 個測試通過。
 
-不一定需要。
-
-如果你只使用 IntelliJ IDEA：
-
-- 通常不需要另外安裝 `mvn`。
-- IntelliJ 內建 Maven 支援，可以直接讀取 `pom.xml`、下載 dependencies、執行專案與測試。
-- 這是目前最推薦的方式。
-
-如果你想在 Terminal 使用指令：
-
-```bash
-mvn test
-mvn javafx:run
-```
-
-那就需要安裝 Maven，因為目前系統 shell 中沒有 `mvn` 指令。
-
-可以用以下指令確認：
-
-```bash
-mvn -version
-```
-
-如果出現：
-
-```text
-zsh: command not found: mvn
-```
-
-代表尚未安裝 Maven。
-
-## 8. 安裝 Maven 的時機
-
-建議安裝 Maven 的情況：
-
-- 你想用 Terminal 跑測試。
-- 你想用 Terminal 啟動 JavaFX。
-- 你要交付給老師或同學用 command line 驗證。
-- 你不想完全依賴 IntelliJ。
-
-不一定要安裝 Maven 的情況：
-
-- 你只會用 IntelliJ 開發與展示。
-- IntelliJ 已經能成功匯入 `pom.xml`。
-- IntelliJ 可以正常執行 `com.idlerpg.Launcher`。
-
-## 9. 如果要安裝 Maven
-
-macOS 常見方式是使用 Homebrew：
-
-```bash
-brew install maven
-```
-
-安裝後確認：
-
-```bash
-mvn -version
-```
-
-之後可在 `final_prj` 目錄執行：
-
-```bash
-mvn test
-mvn javafx:run
-```
-
-## 10. 常見問題
-
-### IntelliJ 顯示 JavaFX 找不到
-
-先確認 `pom.xml` 已被 IntelliJ 以 Maven project 載入，並等待 dependencies 下載完成。
-
-可嘗試：
-
-```text
-右側 Maven 面板 -> Reload All Maven Projects
-```
-
-### Main class 找不到
-
-確認 Run Configuration 的 Main class 是：
-
-```text
-com.idlerpg.Launcher
-```
-
-不是舊的 default package `Main`，也不是直接執行 `com.idlerpg.Main`。
+## 16. 常見問題
 
 ### JavaFX runtime components are missing
 
-如果看到：
+執行 `com.idlerpg.Launcher`，不要直接執行 `com.idlerpg.Main`。
 
-```text
-Error: JavaFX runtime components are missing, and are required to run this application
-```
+### Unsupported JavaFX configuration
 
-請把 IntelliJ Run Configuration 的 Main class 改成：
-
-```text
-com.idlerpg.Launcher
-```
-
-`Main` 是 JavaFX `Application` 類別，直接執行時容易遇到 JavaFX runtime/module path 問題；`Launcher` 是一般 Java 入口，會再呼叫 `Main` 啟動 JavaFX。
-
-### JavaFX unnamed module / native access warning
-
-如果啟動時看到類似：
-
-```text
-WARNING: Unsupported JavaFX configuration: classes were loaded from 'unnamed module'
-WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning
-```
-
-這是 Java 26 對 JavaFX native library 載入方式的警告，不代表程式執行失敗。只要 JavaFX 視窗正常開啟，就可以繼續展示與操作。
-
-若想減少 native access 警告，可在 IntelliJ Run Configuration 的 `VM options` 加上：
+這是 Java 26 classpath 啟動方式的警告。若畫面正常開啟，不影響專題展示。可加入：
 
 ```text
 --enable-native-access=ALL-UNNAMED
 ```
 
-完整設定建議：
-
-```text
-Main class: com.idlerpg.Launcher
-VM options: --enable-native-access=ALL-UNNAMED
-Working directory: /Users/ian/Documents/swfw/final/final_prj
-```
-
-`Unsupported JavaFX configuration` 來自目前以 classpath 方式啟動 JavaFX。這個 warning 對本專題展示不影響；若要完全消除，需要把專案改成 Java module path / `module-info.java` 的模組化 JavaFX 專案。
-
 ### JSON 修改後沒有生效
 
-重新停止並執行程式。JSON 會在程式啟動時載入。
+JSON 只在啟動時載入，請停止後重新執行程式。
 
-### FXML 載入錯誤
+### 舊存檔造成資料錯誤
 
-確認資源路徑存在：
+新增或刪除重要資料 id 後，舊存檔可能仍引用舊 id。開發期間可刪除：
 
 ```text
-src/main/resources/view/fxml/main.fxml
-src/main/resources/view/css/app.css
+~/.idle-rpg-framework/save.json
 ```
 
-## 11. 專題展示建議
-
-展示時可以依序說明：
-
-1. README 的專題目標是可擴充 Idle RPG Framework。
-2. `data/*.json` 展示 Data-Driven Design。
-3. `EventBus` 展示事件驅動與 Observer Pattern。
-4. `RegionRegistry`、`QuestRegistry`、`ShopRegistry` 展示可擴充內容管理。
-5. `SaveService` 展示遊戲狀態保存與讀取。
-6. `Factory`、`Strategy`、`Command` 展示設計模式。
-7. JavaFX 深色 UI 展示 MVC 分層，View 不直接操作遊戲邏輯。
-8. `docs/uml` 展示 UML 文件。
+再重新啟動。

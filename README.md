@@ -422,7 +422,7 @@ Controller
 # 十、UML 圖
 
 * **Class Diagram**
-```
+```mermaid
 classDiagram
 
 %% ================= ABSTRACT =================
@@ -527,7 +527,7 @@ GameEngine --> EventBus
 ```
 
 * **Package Diagram**
-```
+```mermaid
 flowchart TD
 
 UI[View Layer - JavaFX UI]
@@ -546,7 +546,7 @@ CORE --> DATA
 ```
 
 * **Tick Engine Flow**
-```
+```mermaid
 sequenceDiagram
 
 participant Engine
